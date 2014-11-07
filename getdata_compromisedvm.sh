@@ -114,12 +114,12 @@ tardisks() {
                 while [ $(ps -p $pid_tmp1 | wc -l) -gt 1 ] ; do
                     sleep 1
                     so_far=$(wc -l < tar1.log) 
-                    echo $num_files
-                    echo $so_far
+                    #echo $num_files
+                    #echo $so_far
                     #calc=$(div $so_far $num_file)
                     #echo $calc
                     #calc=`expr calc * 100`
-                    echo -e "\e[0K\r $num_files $so_far"
+                    echo -ne "\r $num_files $so_far"
                 done
           echo "hmm" 
                 sudo kill -9 $1 
