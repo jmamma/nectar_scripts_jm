@@ -2,8 +2,9 @@
 
 #Initialise Process Array
 
-process[0]
+process[0]=-1
 processcount=0
+id=$1
 
 mount_dir_1="/mnt/compromised_vms/$id/root"
 mount_dir_2="/mnt/compromised_vms/$id/ephemeral"
@@ -13,6 +14,7 @@ source helper.sh
 mountdisks() {
 
     echo "Get data from Compromised VM"
+   
     echo "Mount Disks"
 
     #Create the Mount Directories
@@ -77,13 +79,24 @@ cleanUp() {
     
     for i in "${process[@]}"
     do
-            echo "Killing PID: " $i 
-            sudo kill -9 $i
+            if [ $i != -1 ]; then
+                echo "Killing PID: " $i 
+                sudo kill -9 $i
+            fi
     done
+    exit 1
 }
 
+#Script Start:
 
-getnode
+node=$(getNode $id) 
+
+if [ "$node"="1" ]; then
+        cleanUp 1 "Could not find Node"
+fi
+echo "VM: " $id "Hosted on: " $node
+
+
 mountdisks
 sleep 1
 cleanUp 0 
