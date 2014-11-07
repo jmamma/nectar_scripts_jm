@@ -6,15 +6,31 @@ process[0]=-1
 processcount=0
 id=$1
 
-mount_dir_1="/mnt/compromised_vms/$id/root"
-mount_dir_2="/mnt/compromised_vms/$id/ephemeral"
+mount_dir_0="/mnt/vdd/compromised_vms/$id"
+mount_dir_1="$mount_dir_0/root"
+mount_dir_2="$mount_dir_0/ephemeral"
+
+cd $mount_dir_0
 
 source helper.sh
 
+getdisks() {
+    
+    echo "Get disk data from VM: " $id
+    
+    if [ ! -e $mount_dir_0/disk ]; then
+        echo "file does not exist.. ssh" $mount_dir_0/disk
+    fi
+
+    if [ ! -e $mount_dir_0/disk.local ]; then
+        echo "file does not exist.. ssh" $mount_dir_0/disk.local
+    fi
+
+
+}
+
 mountdisks() {
 
-    echo "Get data from Compromised VM"
-   
     echo "Mount Disks"
 
     #Create the Mount Directories
@@ -32,29 +48,47 @@ mountdisks() {
     fi
 
     #Use qemu-nbd to load the first disk image to a device
-
-    echo "Disk 1"
+    
+    echo "Disk 1, root, disk"
     
     if $(sudo qemu-nbd -c /dev/nbd0 disk; wait); then
-        echo "Blah"
+        echo "/dev/nbd0 created"
     else 
-        cleanUp 1 "qemu failed"
+        cleanUp 1 "qemu1 failed"
     fi
 
 
     #Add process of previous command to our Process Array (For termination Later)
     addProcess $(ps ax | grep "qemu-nbd -c /dev/nbd0 disk" | head -1 | cut -f1 -d' ')
-
-     
+ 
     if $(sudo mount /dev/nbd0p1 $mount_dir_1); then
         echo "Mount Successful: $mount_dir_1"
     else
         cleanUp 1 "mount1 failed"
     fi
             
+    echo "Disk 2, ephemeral,disk.local"
+    if $(sudo qemu-nbd -c /dev/nbd1 disk.local; wait); then
+            
+        echo "/dev/nbd1"
+    else 
+        cleanUp 1 "qemu2 failed"
+    fi
+
+    #Add process of previous command to our Process Array (For termination Later)
+    addProcess $(ps ax | grep "qemu-nbd -c /dev/nbd1 disk.local" | head -1 | cut -f1 -d' ')
+
+
+   if $(sudo mount /dev/nbd1 $mount_dir_2); then
+       echo "Mount Successful: $mount_dir_2"
+   else
+       cleanUp 1 "mount2 failed"
+   fi
     
-
-
+    echo -e "\n"
+    df -h
+    echo -e "\n"
+    
     #ps waux | grep ${process[0]}
 }
 
@@ -72,11 +106,15 @@ addProcess() {
 cleanUp() {
     
     if [ $1 = 0 ]; then
-    echo "Success: Exiting"
+        echo "Success: Exiting"
     else
-    echo "Something went wrong: " $2
+        echo "Something went wrong: " $2
     fi
     
+    sudo umount $mount_dir_1
+    sudo umount $mount_dir_2
+
+
     for i in "${process[@]}"
     do
             if [ $i != -1 ]; then
@@ -89,14 +127,18 @@ cleanUp() {
 
 #Script Start:
 
+
 node=$(getNode $id) 
 
-if [ "$node"="1" ]; then
+if [ "$node" = "1" ]; then
         cleanUp 1 "Could not find Node"
 fi
+
 echo "VM: " $id "Hosted on: " $node
 
-
+#If local files do not exist... rsync files from node
+getdisks
 mountdisks
+tardisks
 sleep 1
 cleanUp 0 
