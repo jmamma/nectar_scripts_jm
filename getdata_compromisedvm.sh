@@ -10,9 +10,10 @@ mount_dir_0="/mnt/vdd/compromised_vms/$id"
 mount_dir_1="$mount_dir_0/root"
 mount_dir_2="$mount_dir_0/ephemeral"
 
+source helper.sh
+
 cd $mount_dir_0
 
-source helper.sh
 
 getdisks() {
     
@@ -92,6 +93,58 @@ mountdisks() {
     #ps waux | grep ${process[0]}
 }
 
+tardisks() {
+
+    files=($mount_dir_1/*)
+    files2=($mount_dir_2/*)
+    
+    cd $mount_dir_0
+
+    if [ ${#files[@]} -gt 0 ]; then
+        echo -e "\n Files were detected in $mount_dir_1"
+        echo -e "Creating Archive root.tar.gz"
+        if [ ! -e root.tar.gz ]; then 
+                echo "Counting Files:"
+                num_files=$(sudo find $mount_dir_1 -type f | wc -l)
+               # echo $num_files
+                (sudo tar -vzcf root.tar.gz $mount_dir_1 > tar1.log) &
+                pid_tmp1=$!
+               # echo $pid_tmp1
+                
+                while [ $(ps -p $pid_tmp1 | wc -l) -gt 1 ] ; do
+                    sleep 1
+                    so_far=$(wc -l < tar1.log) 
+                    echo $num_files
+                    echo $so_far
+                    #calc=$(div $so_far $num_file)
+                    #echo $calc
+                    #calc=`expr calc * 100`
+                    echo -e "\e[0K\r $num_files $so_far"
+                done
+          echo "hmm" 
+                sudo kill -9 $1 
+
+        else
+            echo $mount_dir_0"/root.tar.gz already exists"
+        fi
+    fi
+
+    if [ ${#files2[@]} -gt 0 ]; then
+        echo -e "\n Files were detected in $mount_dir_2"
+        echo -e "Creating Archive ephemeral.tar.gz"
+       
+       
+        if [ ! -e root.tar.gz ]; then 
+            sudo tar -vzcf ephemeral.tar.gz $mount_dir_2 > tar2.log   
+
+        else
+            echo $mount_dir_0"/ephemeral.tar.gz already exists"
+        fi   
+       
+
+    fi
+
+}
 
 addProcess() {
 
