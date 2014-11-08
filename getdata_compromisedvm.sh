@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 #Initialise Process Array
@@ -125,8 +126,27 @@ tardisks() {
                     #calc=$(div $so_far $num_file)
                     #echo $calc
                     
-                    clc= $(calc "$so_far / $num_files * 100")
-                    echo -ne "\r $clc% $num_files $so_far"
+                    clc=$(calc "$so_far / $num_files * 100")
+                    clc=$(echo $clc | cut -f1 -d'.')
+                    
+                    clc2=$(calc "$clc / 2")
+                    clc2=$(echo $clc2 | cut -f1 -d'.')
+                                
+                    echo "calc" $clc2 aaaa
+                    bar=""
+                    a=0
+                    while [ "$a" -lt "$clc2" ]; do
+                            bar=$bar'='
+                            echo -n "x"
+                            a=`expr a + 1`
+                    done
+                    a=0
+                    while [ "$a" -lt "$(expr 100 - $clc2)" ]; do
+                            bar='-'$bar
+                            a=`expr a + 1`    
+                    done
+
+                    echo -ne "\r $clc% [ $bar ] $num_files $so_far"
                 done
 
           echo "hmm" 
