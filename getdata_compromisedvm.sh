@@ -3,6 +3,7 @@
 
 #Initialise Process Array
 
+spinner="\|/-"
 process[0]=-1
 processcount=0
 id=$1
@@ -112,48 +113,29 @@ tardisks() {
                 rm tar1.log
 
                 echo "Counting Files:"
-                num_files=$(sudo find $mount_dir_1 -type f | wc -l)
+                num_files=$(sudo find $mount_dir_1 | wc -l)
                # echo $num_files
                 (sudo tar -vzcf root.tar.gz $mount_dir_1 > tar1.log) &
                 pid_tmp1=$!
                # echo $pid_tmp1
-                
+               
+                #Whilst the tar process is still runnning display progress:
                 while [ $(ps -p $pid_tmp1 | wc -l) -gt 1 ] ; do
-                    sleep 1
-                    so_far=$(wc -l < tar1.log) 
-                    #echo $num_files
-                    #echo $so_far
-                    #calc=$(div $so_far $num_file)
-                    #echo $calc
-                    
-                    clc=$(calc "$so_far / $num_files * 100")
-                    clc=$(echo $clc | cut -f1 -d'.')
-                    
-                    clc2=$(calc "$clc / 2")
-                    clc2=$(echo $clc2 | cut -f1 -d'.')
-                                
-                    echo "calc" $clc2 aaaa
-                    bar=""
-                    a=0
-                    while [ "$a" -lt "$clc2" ]; do
-                            bar=$bar'='
-                            echo -n "x"
-                            a=`expr a + 1`
-                    done
-                    a=0
-                    while [ "$a" -lt "$(expr 100 - $clc2)" ]; do
-                            bar='-'$bar
-                            a=`expr a + 1`    
-                    done
+                    sleep 0.5
+                    so_far=$(cat tar1.log | wc -l) 
+                    spinner=$(echo -n $spinner | tail -c 1)$(echo -n $spinner | head -c 3)                    
+                      
+                #Draw progress bar
 
-                    echo -ne "\r $clc% [ $bar ] $num_files $so_far"
-                done
+                    echo -ne "\r $(progressbar $so_far $num_files) $(echo -n $spinner | head -c 1) "
+                    echo -n "Files: $num_files/$so_far || Sizeof root.tar.gz: $(du -h root.tar.gz | cut -f1 -d$'\t') "      
+                     done
 
           echo "hmm" 
                 sudo kill -9 $1 
 
         else
-            echo $mount_dir_0"/root.tar.gz already exists"
+            echo $mount_dir_0"/root.tar.gz already exists, skipping"
         fi
     fi
 
@@ -168,7 +150,7 @@ tardisks() {
                 sudo tar -vzcf ephemeral.tar.gz $mount_dir_2 > tar2.log   
 
         else
-            echo $mount_dir_0"/ephemeral.tar.gz already exists"
+            echo $mount_dir_0"/ephemeral.tar.gz already exists, skipping"
         fi   
        
 
