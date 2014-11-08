@@ -4,6 +4,10 @@
 
 #Helper functions called in by other scripts.
 
+#Kill background processes, if script is terminated early.
+
+trap "killProcess" INT
+
 # Reset
 NoColor='\e[0m'       # Text Reset
 
@@ -16,6 +20,65 @@ Blue='\e[0;34m'         # Blue
 Purple='\e[0;35m'       # Purple
 Cyan='\e[0;36m'         # Cyan
 White='\e[0;37m'        # White
+
+#Initialise Process Array
+
+process[0]=-1
+processcount=0
+
+addProcess() {
+    if [ ! -z $1 ]; then 
+    #process+=$1
+    process[$processcount]=$1
+
+    echo "Added Process" ${process[$processcount]}
+    processcount=`expr $processcount + 1`
+    fi
+}
+
+killProcess() {
+    if [ ! -z ${process[@]} ]; then
+    for i in "${process[@]}"
+        do
+                if [ -z $i ]; then
+                if [ "$i" -gt "0" ]; then
+                  echo "Killing PID: " $i 
+                  sudo kill -9 $i
+        fi
+fi
+    done
+    fi
+}
+
+ssh_tunnel() {
+
+        echo -e "\n${Greem}Establish Tunnel Link${NoColor}\n"
+
+        tunnel=$1
+        destination=$2
+        destination_user=$3
+        localport=$4
+        
+        
+        (ssh -AL $localport:$destination:22 $tunnel -Nf) 
+        # & pid_tmp2=$!
+       # addProcess pid_tmp2
+        ssh $destination_user@localhost -p $localport exit
+        
+        addProcess $(ps ax | grep "ssh -AL $localport:$destination:22 $tunnel -Nf" | head -1 | cut -f1 -d' ')
+
+        
+        if [ $? -eq 0 ]; then
+            echo "Connection to $2 via $tunnel worked!"
+            echo "Tunnel has been established. Please connect by ssh user_destination@localhost -p $3"
+            return 0
+        else
+            echo -e "${Red}Tunnel Failed to connect${NoColor}"
+            return 1 
+        fi
+
+}
+
 
 calc() {
         echo awk \'BEGIN { print "$@" }\' | /bin/bash 
