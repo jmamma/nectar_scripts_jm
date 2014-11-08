@@ -6,7 +6,7 @@
 
 #Kill background processes, if script is terminated early.
 
-trap "killProcess" INT
+trap "killProcess" SIGHUP SIGINT SIGTERM 
 
 # Reset
 NoColor='\e[0m'       # Text Reset
@@ -37,7 +37,7 @@ addProcess() {
 }
 
 killProcess() {
-    if [ ! -z ${process[@]} ]; then
+    if [ $processcount > 0 ]; then
     for i in "${process[@]}"
         do
                 if [ -z $i ]; then
@@ -65,10 +65,10 @@ ssh_tunnel() {
        # addProcess pid_tmp2
         ssh $destination_user@localhost -p $localport exit
         
-        addProcess $(ps ax | grep "ssh -AL $localport:$destination:22 $tunnel -Nf" | head -1 | cut -f1 -d' ')
 
         
         if [ $? -eq 0 ]; then
+addProcess $(ps ax | grep "ssh -AL $localport:$destination:22 $tunnel -Nf" | head -1 | cut -f1 -d' ')
             echo "Connection to $2 via $tunnel worked!"
             echo "Tunnel has been established. Please connect by ssh user_destination@localhost -p $3"
             return 0

@@ -3,7 +3,7 @@
 
 #Run cleanup, if script is terminated early.
 
-trap "cleanUp 2" INT
+trap "cleanUp 2" SIGHUP SIGINT SIGTERM  
 
 spinner="-/|\\"
 
