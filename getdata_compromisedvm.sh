@@ -29,6 +29,10 @@ getdisks() {
         return 1
     fi 
 
+    echo -e "\nRSYNC: Establish SSH Connection to $node\n"
+    prompt_user "Press space to continue..."
+    
+
     rsync -e "ssh -p $3" -vz $2@localhost:~/test .
     echo -e "\n${Green}Stage 0: Get disk data from VM $id${NoColor}\n"
     
@@ -193,8 +197,7 @@ cleanUp() {
     
     if [ $1 == 0 ]; then
         echo -e "\n${Green}Success: Exiting"
-    fi
-    if [ $1 == 2 ]; then
+    elif [ $1 == 2 ]; then
         echo -e "\n${Red}User termination."
     else
         echo -e "\n${Red}Error: " $2
