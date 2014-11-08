@@ -80,11 +80,6 @@ addProcess $(ps ax | grep "ssh -AL $localport:$destination:22 $tunnel -Nf" | hea
 
 prompt_user() {
     read -n1 -r -p "$1"
-    if [ "$key" != ' ' ]; then
-    echo -e "\n${Red} User canceled action {$NoColor}"
-    killProcess
-    exit
-    fi
 }
 
 calc() {
