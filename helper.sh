@@ -4,6 +4,10 @@
 
 #Helper functions called in by other scripts.
 
+calc() {
+        echo awk \'BEGIN { print "$@" }\' | /bin/bash 
+}
+
 check_admin_credentials() {
     
         
@@ -20,7 +24,7 @@ check_admin_credentials() {
 
 getNode() {
 
-        if [ ! check_admin_credentials ]; then
+        if [ -z check_admin_credentials ]; then
             return 1
         fi
         

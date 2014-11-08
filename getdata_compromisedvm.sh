@@ -100,10 +100,16 @@ tardisks() {
     
     cd $mount_dir_0
 
+    echo "Tar"
+
     if [ ${#files[@]} -gt 0 ]; then
+
         echo -e "\n Files were detected in $mount_dir_1"
         echo -e "Creating Archive root.tar.gz"
+
         if [ ! -e root.tar.gz ]; then 
+                rm tar1.log
+
                 echo "Counting Files:"
                 num_files=$(sudo find $mount_dir_1 -type f | wc -l)
                # echo $num_files
@@ -118,9 +124,11 @@ tardisks() {
                     #echo $so_far
                     #calc=$(div $so_far $num_file)
                     #echo $calc
-                    #calc=`expr calc * 100`
-                    echo -ne "\r $num_files $so_far"
+                    
+                    clc= $(calc "$so_far / $num_files * 100")
+                    echo -ne "\r $clc% $num_files $so_far"
                 done
+
           echo "hmm" 
                 sudo kill -9 $1 
 
@@ -135,7 +143,9 @@ tardisks() {
        
        
         if [ ! -e root.tar.gz ]; then 
-            sudo tar -vzcf ephemeral.tar.gz $mount_dir_2 > tar2.log   
+                rm tar2.log
+        
+                sudo tar -vzcf ephemeral.tar.gz $mount_dir_2 > tar2.log   
 
         else
             echo $mount_dir_0"/ephemeral.tar.gz already exists"
@@ -164,9 +174,13 @@ cleanUp() {
         echo "Something went wrong: " $2
     fi
     
-    sudo umount $mount_dir_1
-    sudo umount $mount_dir_2
+    if grep -qs $mount_dir_1 /proc/mounts; then
+        sudo umount $mount_dir_1
+    fi
 
+    if grep -qs $mount_dir_2 /proc/mounts; then
+        sudo umount $mount_dir_2
+    fi
 
     for i in "${process[@]}"
     do
@@ -180,10 +194,14 @@ cleanUp() {
 
 #Script Start:
 
+if [ -z $id ]; then
+    echo "Error: Must specify VM ID as argument"
+    exit 1
+fi 
 
 node=$(getNode $id) 
 
-if [ "$node" = "1" ]; then
+if [ "$node" = "1" ] || [ -z $node ] ; then
         cleanUp 1 "Could not find Node"
 fi
 
