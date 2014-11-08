@@ -4,6 +4,19 @@
 
 #Helper functions called in by other scripts.
 
+# Reset
+NoColor='\e[0m'       # Text Reset
+
+# Regular Colors
+Black='\e[0;30m'        # Black
+Red='\e[0;31m'          # Red
+Green='\e[0;32m'        # Green
+Yellow='\e[0;33m'       # Yellow
+Blue='\e[0;34m'         # Blue
+Purple='\e[0;35m'       # Purple
+Cyan='\e[0;36m'         # Cyan
+White='\e[0;37m'        # White
+
 calc() {
         echo awk \'BEGIN { print "$@" }\' | /bin/bash 
 }
@@ -68,6 +81,21 @@ check_admin_credentials() {
             return 1
     fi;
 
+
+}
+
+get_volumes() {
+        if [ -z check_admin_credentials ]; then
+            return 1
+        fi
+
+        if [ -z $1 ]; then
+            echo "No VM ID supplied"    
+            return 1
+        else
+            nova show $1 |  grep "OS-EXT-SRV-ATTR:hypervisor_hostname" | cut -f3 -d'|' | tr -d ' ' 
+                
+        fi
 
 }
 

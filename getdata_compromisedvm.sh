@@ -1,9 +1,12 @@
 
 #!/bin/bash
 
-#Initialise Process Array
+#Run cleanup, if script is aborted.
 
-spinner="\|/-"
+trap "cleanUp 2" INT
+
+#Initialise Process Array
+spinner="-/|\\"
 process[0]=-1
 processcount=0
 id=$1
@@ -19,14 +22,14 @@ cd $mount_dir_0
 
 getdisks() {
     
-    echo "Get disk data from VM: " $id
+    echo -e "\n${Green}Stage 0: Get disk data from VM $id${NoColor}\n"
     
     if [ ! -e $mount_dir_0/disk ]; then
-        echo "file does not exist.. ssh" $mount_dir_0/disk
+        echo "${Orange}File does not exist.. ssh $mount_dir_0/disk${NoColor}"
     fi
 
     if [ ! -e $mount_dir_0/disk.local ]; then
-        echo "file does not exist.. ssh" $mount_dir_0/disk.local
+        echo "${Orange}file does not exist.. ssh $mount_dir_0/disk.local${NoColor}"
     fi
 
 
@@ -34,25 +37,29 @@ getdisks() {
 
 mountdisks() {
 
-    echo "Mount Disks"
+    echo -e "\n${Green}Stage 1: Mount Disks${NoColor}\n"
 
     #Create the Mount Directories
+
+    echo -e "Creating Mount Directory: $mount_dir_1"
     sudo mkdir -p $mount_dir_1 
+    echo -e "Creating Mount Directory: $mount_dir_2\n"
     sudo mkdir -p $mount_dir_2
 
     #Load the Kernal Module
 
     if [ `lsmod | grep nbd | wc -l` -gt 0 ]; then
 
-        echo "Qemu Kernal Module Loaded"
+        echo "Qemu Kernal Module already loaded"
         else
         sudo modprobe nbd max_part=63   
-
+        echo "Qemu Kernal Module loaded"
+        
     fi
 
     #Use qemu-nbd to load the first disk image to a device
     
-    echo "Disk 1, root, disk"
+    echo -e "\nDisk 1, root, disk:"
     
     if $(sudo qemu-nbd -c /dev/nbd0 disk; wait); then
         echo "/dev/nbd0 created"
@@ -65,7 +72,7 @@ mountdisks() {
     addProcess $(ps ax | grep "qemu-nbd -c /dev/nbd0 disk" | head -1 | cut -f1 -d' ')
  
     if $(sudo mount /dev/nbd0p1 $mount_dir_1); then
-        echo "Mount Successful: $mount_dir_1"
+        echo -e "Mount Successful: $mount_dir_1\n"
     else
         cleanUp 1 "mount1 failed"
     fi
@@ -83,14 +90,12 @@ mountdisks() {
 
 
    if $(sudo mount /dev/nbd1 $mount_dir_2); then
-       echo "Mount Successful: $mount_dir_2"
+       echo -e "Mount Successful: $mount_dir_2\n"
    else
        cleanUp 1 "mount2 failed"
    fi
     
-    echo -e "\n"
     df -h
-    echo -e "\n"
     
     #ps waux | grep ${process[0]}
 }
@@ -102,37 +107,48 @@ tardisks() {
     
     cd $mount_dir_0
 
-    echo "Tar"
+    echo -e "\n${Green}Stage 3: Create Compressed Archives (TAR) ${NoColor}"
 
     if [ ${#files[@]} -gt 0 ]; then
 
+
+        echo -e "Creating Archive - root.tar.gz"
+    
         echo -e "\n Files were detected in $mount_dir_1"
-        echo -e "Creating Archive root.tar.gz"
 
         if [ ! -e root.tar.gz ]; then 
+
+              #  create_tar $mount_dir_1 root.tar.gz
+
                 rm tar1.log
 
-                echo "Counting Files:"
+                echo -e "\nCounting Files... "
+                #Count number of files in mount directory.
+
                 num_files=$(sudo find $mount_dir_1 | wc -l)
-               # echo $num_files
-                (sudo tar -vzcf root.tar.gz $mount_dir_1 > tar1.log) &
-                pid_tmp1=$!
-               # echo $pid_tmp1
+                echo -ne "$num_files\n"
+               
+                #Create an archive of the mounted directory by running tar in the background
+
+                (sudo tar -vzcf root.tar.gz $mount_dir_1 > tar1.log) & pid_tmp1=$!
                
                 #Whilst the tar process is still runnning display progress:
+                
                 while [ $(ps -p $pid_tmp1 | wc -l) -gt 1 ] ; do
+                
+                #Check progress every 500ms.
                     sleep 0.5
+                #Count number of files processed so far.
                     so_far=$(cat tar1.log | wc -l) 
+                #Rotate spinner glyph
                     spinner=$(echo -n $spinner | tail -c 1)$(echo -n $spinner | head -c 3)                    
                       
                 #Draw progress bar
 
                     echo -ne "\r $(progressbar $so_far $num_files) $(echo -n $spinner | head -c 1) "
-                    echo -n "Files: $num_files/$so_far || Sizeof root.tar.gz: $(du -h root.tar.gz | cut -f1 -d$'\t') "      
-                     done
-
-          echo "hmm" 
-                sudo kill -9 $1 
+                    echo -n "Files: $num_files/$so_far - SizeOf root.tar.gz: $(du -h root.tar.gz | cut -f1 -d$'\t') "      
+                
+                done
 
         else
             echo $mount_dir_0"/root.tar.gz already exists, skipping"
@@ -140,14 +156,42 @@ tardisks() {
     fi
 
     if [ ${#files2[@]} -gt 0 ]; then
-        echo -e "\n Files were detected in $mount_dir_2"
         echo -e "Creating Archive ephemeral.tar.gz"
-       
+        echo -e "\n Files were detected in $mount_dir_2"
        
         if [ ! -e root.tar.gz ]; then 
                 rm tar2.log
         
-                sudo tar -vzcf ephemeral.tar.gz $mount_dir_2 > tar2.log   
+                #Count number of files in mount directory.
+                echo -e "Counting Files.. "
+                num_files=$(sudo find $mount_dir_2 | wc -l)
+                echo -ne "$num_files\n"
+   
+                #Create an archive of the mounted directory by running tar in the background
+
+                (sudo tar -vzcf ephemeral.tar.gz $mount_dir_2 > tar2.log) & pid_tmp2=$!
+
+                #Whilst the tar process is still runnning display progress:
+               
+                while [ $(ps -p $pid_tmp2 | wc -l) -gt 1 ] ; do
+                     #Check the progress every 500ms.
+
+                     sleep 0.5
+                     #Count the number of files processed so far.
+
+                     so_far=$(cat tar2.log | wc -l)                  
+                     
+                     #Rotate the spinner glyph.
+                     spinner=$(echo -n $spinner | tail -c 1)$(echo -n $spinner | head -c 3)                    
+      
+                #Draw progress bar
+
+                    echo -ne "\r $(progressbar $so_far $num_files) $(echo -n $spinner | head -c 1) "
+                    echo -n "Files: $num_files/$so_far || SizeOf ephemeral.tar.gz: $(du -h ephemeral.tar.gz | cut -f1 -d$'\t') "      
+
+                done
+
+
 
         else
             echo $mount_dir_0"/ephemeral.tar.gz already exists, skipping"
@@ -171,9 +215,12 @@ addProcess() {
 cleanUp() {
     
     if [ $1 = 0 ]; then
-        echo "Success: Exiting"
+        echo -e "\n${Green}Success: Exiting"
+    fi
+    if [ $1 = 2 ]; then
+        echo -e "\n${Red}User termination."
     else
-        echo "Something went wrong: " $2
+        echo -e "\n${Red}Error: " $2
     fi
     
     if grep -qs $mount_dir_1 /proc/mounts; then
@@ -197,7 +244,7 @@ cleanUp() {
 #Script Start:
 
 if [ -z $id ]; then
-    echo "Error: Must specify VM ID as argument"
+    echo "${Red}Error: Must specify VM ID as argument"
     exit 1
 fi 
 
@@ -207,7 +254,11 @@ if [ "$node" = "1" ] || [ -z $node ] ; then
         cleanUp 1 "Could not find Node"
 fi
 
-echo "VM: " $id "Hosted on: " $node
+echo -e "\n\n"
+echo -e "${Green}--------------------------"
+echo -e "VM Data Backup"
+echo -e "--------------------------\n"
+echo -e "${NoColor}VM: $id \nHosted on: $node\n"
 
 #If local files do not exist... rsync files from node
 getdisks
