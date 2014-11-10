@@ -306,27 +306,36 @@ tardisks() {
 
 
 swiftupload() {
-    (swift -v upload $1 $2 $3 > swift.$2.log) & pid_tmp1=$!
+    
+    if [ -e $2.swift.log ]; then 
+        sudo rm $2.swift.log
+    fi
+    sudo touch $2.swift.log
+    sudo chmod 777 $2.swift.log 
+
+    (swift -v upload $1 $2 -S $3 > $2.swift.log) & pid_tmp1=$!
 
 
     #Whilst the swift process is still runnning display progress:
 
     so_far=0
     num_seg=$(du -b $2 | cut -f1 -d$'\t') 
-    num_seg=$(calc "$num_seg / $3")
+    num_seg=$(expr `expr $num_seg / $3` + 1)
+    # num_seg=$(calc "$num_seg / $3")
 
     while [ $(ps -p $pid_tmp1 | wc -l) -gt 1 ] ; do
   
       #Check progress every 100ms.
         sleep 0.2
     #Count number of files processed so far.
-        so_far=$( cat swift.$2.log | wc -l) 
-    #Rotate spinner glyph
+        so_far=$( cat $2.swift.log | wc -l) 
+        #Rotate spinner glyph
         spinner=$(echo -n $spinner | tail -c 1)$(echo -n $spinner | head -c 3)                    
       
     #Draw progress bar
-        echo -ne "\r $(progressbar $so_far $num_seg) $(echo -n $spinner | head -c 1) "
-        echo -n "Files: $so_far/$num_seg - SizeOf $1: $(du -h $1 | cut -f1 -d$'\t') "      
+      
+        echo -ne "\r$(echo -n $spinner | head -c 1) "
+        echo -n "Files: $so_far/$num_seg - SizeOf $(du -h $2 | cut -f1 -d$'\t') "      
 
     done
 
