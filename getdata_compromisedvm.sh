@@ -56,6 +56,7 @@ fi
 
 spinner="-/|\\"
 
+rc_dir="/home/ubuntu/openstack"
 mount_dir_0="/mnt/vdd/$id"
 mount_dir_1="$mount_dir_0/root"
 mount_dir_2="$mount_dir_0/ephemeral"
@@ -114,11 +115,11 @@ getdisks() {
   
         echo -e "\n Using tunnel"
     
-        if [ ! -e disk ]; then 
+        if [ ! -e $disk_image_dir/$id/disk ]; then 
               sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/ 
         fi
        
-        if [ ! -e disk.local ]; then
+        if [ ! -e $disk_image_dir/$id/disk.local ]; then
               sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/
         fi
         
@@ -126,10 +127,10 @@ getdisks() {
     
     #rsync directly to node
 
-        if [ ! -e disk ]; then 
+        if [ ! -e $disk_image_dir/$id/disk ]; then 
               sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/
         fi
-        if [ ! -e disk.local ]; then
+        if [ ! -e $disk_image_dir/$id/disk.local ]; then
               sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk.local $mount_dir_0/
         fi
     fi
@@ -301,8 +302,45 @@ tardisks() {
 
 }
 
+
 swiftupload() {
-echo hello
+    (swift -v upload $1 $2 $3 > swift.$2.log) & pid_tmp1=$!
+
+
+    #Whilst the swift process is still runnning display progress:
+
+    so_far=0
+    num_seg=$(du -b $2 | cut -f1 -d$'\t') 
+    num_seg=$(calc "$num_seg / $3")
+
+    while [ $(ps -p $pid_tmp1 | wc -l) -gt 1 ] ; do
+  
+      #Check progress every 100ms.
+        sleep 0.2
+    #Count number of files processed so far.
+        so_far=$( cat swift.$2.log | wc -l) 
+    #Rotate spinner glyph
+        spinner=$(echo -n $spinner | tail -c 1)$(echo -n $spinner | head -c 3)                    
+      
+    #Draw progress bar
+        echo -ne "\r $(progressbar $so_far $num_seg) $(echo -n $spinner | head -c 1) "
+        echo -n "Files: $so_far/$num_seg - SizeOf $1: $(du -h $1 | cut -f1 -d$'\t') "      
+
+    done
+
+
+}
+
+swift_send() {
+    echo -e "\n${Green}Stage 4: SWIFT Upload ${NoColor}"
+    echo -e "\nUploading mount_dir_0/root.tar.gz to container $id " 
+
+    swiftupload $id $mount_dir_0/root.tar.gz 2147483648
+
+    echo -e "\nUploading mount_dir_0/ephemeral.tar.gz to container $id " 
+
+    swiftupload $id $mount_dir_0/ephemeral.tar.gz 2147483648
+
 }
 
 cleanUp() {
@@ -334,6 +372,8 @@ if [ -z $id ]; then
     exit 1
 fi 
 
+source $rc_dir/openrc-admin.sh
+
 node=$(getNode $id) 
 
 if [ "$node" = "1" ] || [ -z $node ] ; then
@@ -352,6 +392,9 @@ getdisks $node $user $port
 
 mountdisks
 tardisks
-swiftupload
+
+source $rc_dir/nectar_image_quarantine-openrc.sh 
+
+swift_send
 sleep 1
 cleanUp 0 
