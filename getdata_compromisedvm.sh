@@ -354,6 +354,18 @@ swift_send() {
 
 }
 
+swift_tempurl() {
+  echo -e "\n${Green}Stage 4: Generating Temp URLs: ${NoColor}"
+
+  path_tmp=$(echo $mount_dir_0 | cut -c2-)
+
+  authvar=$(swift stat | grep Account: | cut -f2 -d':' | tr -d ' ')
+  echo https://swift.rc.nectar.org.au:8888$(swift tempurl GET 604800 /v1/$authvar/$id/"$path_tmp/root.tar.gz" waibpobHes)
+  echo https://swift.rc.nectar.org.au:8888$(swift tempurl GET 604800 /v1/$authvar/$id/"$path_tmp/ephemeral.tar.gz" waibpobHes)
+    
+
+}
+
 cleanUp() {
     
     if [ $1 == 0 ]; then
@@ -407,5 +419,6 @@ tardisks
 source $rc_dir/nectar_image_quarantine-openrc.sh 
 
 swift_send
+swift_tempurl
 sleep 1
 cleanUp 0 
