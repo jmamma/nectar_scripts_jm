@@ -1,0 +1,112 @@
+
+
+
+[0;32m--------------------------
+VM Data Backup
+--------------------------
+
+[0mVM: e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75 
+Hosted on: np-rcc36.melbourne.nectar.org.au
+
+
+[0;32mEstablish Tunnel Link[0m
+
+
+
+
+[0;32m--------------------------
+VM Data Backup
+--------------------------
+
+[0mVM: e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75 
+Hosted on: np-rcc36.melbourne.nectar.org.au
+
+
+[0;32mEstablish Tunnel Link[0m
+
+Added Process:  13734
+Connection to np-rcc36.melbourne.nectar.org.au via suse worked!
+
+RSYNC: Establish SSH Connection to np-rcc36.melbourne.nectar.org.au
+
+   Copy files from root@np-rcc36.melbourne.nectar.org.au:/var/lib/nova/instances/e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75 
+
+
+
+
+[0;32m--------------------------
+VM Data Backup
+--------------------------
+
+[0mVM: e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75 
+Hosted on: np-rcc36.melbourne.nectar.org.au
+
+
+[0;32mEstablish Tunnel Link[0m
+
+Added Process:  13734
+Connection to np-rcc36.melbourne.nectar.org.au via suse worked!
+
+RSYNC: Establish SSH Connection to np-rcc36.melbourne.nectar.org.au
+
+   Copy files from root@np-rcc36.melbourne.nectar.org.au:/var/lib/nova/instances/e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75 
+
+
+ Using tunnel
+
+[0;32mStage 0: Get disk data from VM e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75[0m
+
+
+[0;32mStage 1: Mount Disks[0m
+
+Creating Mount Directory: /mnt/vdd/e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75/root
+Creating Mount Directory: /mnt/vdd/e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75/ephemeral
+
+Qemu Kernal Module already loaded
+
+Disk 1, root, disk:
+/dev/nbd0 created
+Added Process:  13754
+
+[0;31mError: [0m mount1 failed
+Killing PID:  13734
+Killing PID:  13754
+
+
+
+[0;32m--------------------------
+VM Data Backup
+--------------------------
+
+[0mVM: e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75 
+Hosted on: np-rcc36.melbourne.nectar.org.au
+
+
+[0;32mEstablish Tunnel Link[0m
+
+Added Process:  13824
+Connection to np-rcc36.melbourne.nectar.org.au via suse worked!
+
+RSYNC: Establish SSH Connection to np-rcc36.melbourne.nectar.org.au
+
+   Copy files from root@np-rcc36.melbourne.nectar.org.au:/var/lib/nova/instances/e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75 
+
+
+ Using tunnel
+
+[0;32mStage 0: Get disk data from VM e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75[0m
+
+
+[0;32mStage 1: Mount Disks[0m
+
+Creating Mount Directory: /mnt/vdd/e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75/root
+Creating Mount Directory: /mnt/vdd/e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75/ephemeral
+
+Qemu Kernal Module already loaded
+
+Disk 1, root, disk:
+/dev/nbd0 created
+Added Process:  14020
+Mount Successful: /mnt/vdd/e2bf97cc-b34f-4f1d-b15a-eb3c347d7e75/root
+
+Disk 2, ephemeral,disk.local

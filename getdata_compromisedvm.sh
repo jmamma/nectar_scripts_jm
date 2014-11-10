@@ -11,7 +11,7 @@ display_help() {
 echo -e "\nUsage:"
 echo "command -t tunnel destination_user tunnel_port -i full_path_to_identity_file VM_ID"
 echo -e "command -t user@tunnel.com root 5555 -i /home/user/ssh/id_rsa e2xsa3242423411a223423a12 \n"
-
+echo -e "-u Generate TempURL only from Swift."
 }
 
 tunnel=/dev/null
@@ -37,7 +37,10 @@ while [ $# -gt 0 ]; do
             ;;
         -i) shift
             identity_file=$1
-            ;;    
+            ;; 
+        -u) shift
+            url=1
+            ;;   
         *)
             id=$1
             shift
@@ -48,7 +51,7 @@ while [ $# -gt 0 ]; do
 
 done
 
-if [ -z "$identity_file" ] || [ ! -e $identity_file ]; then
+if [ -z "$identity_file" ] || [ ! -e $identity_file ] && [ -z $url ]; then
         echo -e "\n You need to specify an identity file with the -i flag"  
         exit
 fi 
@@ -338,8 +341,6 @@ swiftupload() {
         echo -n "Files: $so_far/$num_seg - SizeOf $(du -h $2 | cut -f1 -d$'\t') "      
 
     done
-
-
 }
 
 swift_send() {
@@ -357,6 +358,7 @@ swift_send() {
 swift_tempurl() {
   echo -e "\n${Green}Stage 4: Generating Temp URLs: ${NoColor}"
 
+  swift list
   path_tmp=$(echo $mount_dir_0 | cut -c2-)
 
   authvar=$(swift stat | grep Account: | cut -f2 -d':' | tr -d ' ')
@@ -411,14 +413,17 @@ echo -e "${NoColor}VM: $id \nHosted on: $node\n"
 
 #If local files do not exist... rsync files from node
 
-getdisks $node $user $port
+if [ -z $url ]; then 
+    getdisks $node $user $port
 
-mountdisks
-tardisks
+    mountdisks
+    tardisks
+fi
+    source $rc_dir/nectar_image_quarantine-openrc.sh 
+if [ -z $url ]; then
+    swift_send
+fi
 
-source $rc_dir/nectar_image_quarantine-openrc.sh 
-
-swift_send
 swift_tempurl
 sleep 1
 cleanUp 0 
