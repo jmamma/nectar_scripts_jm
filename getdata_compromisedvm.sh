@@ -33,7 +33,7 @@ while [ $# -gt 0 ]; do
             tunnel=$1
             user=$2
             port=$3
-            shift 4
+            shift 3 
             ;;
         -i) shift
             identity_file=$1
@@ -48,13 +48,15 @@ while [ $# -gt 0 ]; do
 
 done
 
-if [ ! -z $identity_file ] || [ ! -e $identity_fiel ]; then
+if [ -z "$identity_file" ] || [ ! -e $identity_file ]; then
         echo -e "\n You need to specify an identity file with the -i flag"  
+        exit
 fi 
+
 
 spinner="-/|\\"
 
-mount_dir_0="/mnt/vdd/compromised_vms/$id"
+mount_dir_0="/mnt/vdd/$id"
 mount_dir_1="$mount_dir_0/root"
 mount_dir_2="$mount_dir_0/ephemeral"
 disk_image_dir="/var/lib/nova/instances"
@@ -135,11 +137,11 @@ getdisks() {
     echo -e "\n${Green}Stage 0: Get disk data from VM $id${NoColor}\n"
     
     if [ ! -e $mount_dir_0/disk ]; then
-        echo "${Orange}File does not exist.. ssh $mount_dir_0/disk${NoColor}"
+        echo -e "${Orange}File does not exist.. ssh $mount_dir_0/disk${NoColor}"
     fi
 
     if [ ! -e $mount_dir_0/disk.local ]; then
-        echo "${Orange}file does not exist.. ssh $mount_dir_0/disk.local${NoColor}"
+        echo -e "${Orange}File does not exist.. ssh $mount_dir_0/disk.local${NoColor}"
     fi
 
 
@@ -217,26 +219,30 @@ create_tar() {
     if [ -e $1.log ]; then 
         sudo rm $1.log
     fi
+    sudo touch $1.log
     #Remove the leading slash from the path
     path_tmp=$(echo $2 | cut -c2-)
 
     echo -e "\nCounting Files... "
+    
     #Count number of files in mount directory.
-
+    
     num_files=$(sudo find $2 | wc -l)
+   
+    #Count number of directories in path 
+    num_dir=$(echo $2 | grep -o '/' | wc -l)
+   
     echo -ne "$num_files\n"
 
     #Create an archive of the mounted directory by running tar in the background
 
 
-
-    (sudo tar -vzcf $1 -C / $path_tmp > $1.log) & pid_tmp1=$!
+   (sudo tar -vzcf $1 --index-file $1.log -C / $path_tmp) & pid_tmp1=$!
 
 
     #Whilst the tar process is still runnning display progress:
 
     while [ $(ps -p $pid_tmp1 | wc -l) -gt 1 ] ; do
-echo "wwat"
     #Check progress every 100ms.
         sleep 0.2
     #Count number of files processed so far.
@@ -246,7 +252,7 @@ echo "wwat"
       
     #Draw progress bar
         echo -ne "\r $(progressbar $so_far $num_files) $(echo -n $spinner | head -c 1) "
-        echo -n "Files: $num_files/$so_far - SizeOf $1: $(du -h $1 | cut -f1 -d$'\t') "      
+        echo -n "Files: $so_far/$num_files - SizeOf $1: $(du -h $1 | cut -f1 -d$'\t') "      
 
     done
 
@@ -295,15 +301,18 @@ tardisks() {
 
 }
 
+swiftupload() {
+echo hello
+}
 
 cleanUp() {
     
     if [ $1 == 0 ]; then
-        echo -e "\n${Green}Success: Exiting"
+        echo -e "\n${Green}Success: Exiting${NoColor}"
     elif [ $1 == 2 ]; then
-        echo -e "\n${Red}User termination."
+        echo -e "\n${Red}User termination.${NoColor}"
     else
-        echo -e "\n${Red}Error: " $2
+        echo -e "\n${Red}Error: ${NoColor}" $2
     fi
     
     if grep -qs $mount_dir_1 /proc/mounts; then
@@ -343,5 +352,6 @@ getdisks $node $user $port
 
 mountdisks
 tardisks
+swiftupload
 sleep 1
 cleanUp 0 
