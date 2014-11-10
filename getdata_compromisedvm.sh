@@ -46,10 +46,6 @@ while [ $# -gt 0 ]; do
 
 done
 
-
-echo id is $id
-
-
 spinner="-/|\\"
 
 mount_dir_0="/mnt/vdd/compromised_vms/$id"
