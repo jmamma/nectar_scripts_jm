@@ -115,23 +115,25 @@ getdisks() {
   
         echo -e "\n Using tunnel"
     
-        if [ ! -e $disk_image_dir/$id/disk ]; then 
-              sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/ 
+
+
+        if [ ! -e $mount_dir_0/disk ]; then 
+                sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/ 
         fi
        
-        if [ ! -e $disk_image_dir/$id/disk.local ]; then
-              sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/
+        if [ ! -e $mount_dir_0/disk.local ]; then
+                sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/
         fi
         
     else
     
     #rsync directly to node
 
-        if [ ! -e $disk_image_dir/$id/disk ]; then 
-              sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/
+        if [ ! -e $mount_dir_0/$id/disk ]; then 
+                sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/
         fi
-        if [ ! -e $disk_image_dir/$id/disk.local ]; then
-              sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk.local $mount_dir_0/
+        if [ ! -e $mount_dir_0/$id/disk.local ]; then
+                sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk.local $mount_dir_0/
         fi
     fi
     
