@@ -59,20 +59,22 @@ ssh_tunnel() {
         localport=$4
         
         
-        (ssh -AL $localport:$destination:22 $tunnel -Nf) 
-        # & pid_tmp2=$!
+       (ssh -AL $localport:$destination:22 $tunnel -Nf)  
+       # & pid_tmp2=$!
        # addProcess pid_tmp2
-        ssh $destination_user@localhost -p $localport exit
+        #ssh -i ~/.ssh/nectar_jm $destination_user@localhost -p $localport exit
+        ssh  localhost -p $localport exit
         
 
+        addProcess $(ps ax | grep "ssh -AL $localport:$destination:22 $tunnel -Nf" | head -1 | cut -f1 -d' ')
         
         if [ $? -eq 0 ]; then
-addProcess $(ps ax | grep "ssh -AL $localport:$destination:22 $tunnel -Nf" | head -1 | cut -f1 -d' ')
             echo "Connection to $2 via $tunnel worked!"
         #    echo "Tunnel has been established. Please connect by ssh user_destination@localhost -p $3"
             return 0
         else
             echo -e "${Red}Tunnel Failed to connect${NoColor}"
+            cleanUp;
             return 1 
         fi
 

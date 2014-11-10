@@ -5,35 +5,131 @@
 
 trap "cleanUp 2" SIGHUP SIGINT SIGTERM  
 
+
+display_help() {
+
+echo -e "\nUsage:"
+echo "command -t tunnel destination_user tunnel_port full_path_to_identity_file"
+echo -e "command -t user@tunnel.com root 5555\n"
+
+}
+
+tunnel=/dev/null
+
+
+if [ $# -eq 0 ]; then
+    display_help
+fi 
+
+while [ $# -gt 0 ]; do
+        key="$1"
+        case $key in
+        -h)
+            display_help 
+            exit
+            ;;
+        -t)
+            shift
+            tunnel=$1
+            user=$2
+            port=$3
+            identity_file=$4
+            shift 4
+            ;;
+        *)
+            id=$1
+            shift
+            ;;
+
+        esac
+
+
+done
+
+
+echo id is $id
+
+
 spinner="-/|\\"
-
-
-id=$1
 
 mount_dir_0="/mnt/vdd/compromised_vms/$id"
 mount_dir_1="$mount_dir_0/root"
 mount_dir_2="$mount_dir_0/ephemeral"
+disk_image_dir="/var/lib/nova/instances"
 
-tunnel=suse
+
+#Load Helper Functions and Variables
 
 source helper.sh
+
+#Create the Directory for the VM if it does not exist
+
+sudo mkdir -p $mount_dir_0 
+
+#Switch in to the VM's directory.
 
 cd $mount_dir_0
 
 
 getdisks() {
 
-    ssh_tunnel $tunnel $node $2 $3 
-    if [ "$?" -gt "0" ]; then
-        cleanUp 5 "SSH Tunnel Failed"
-        return 1
-    fi 
+    #If the sshtunnel variable is set, then attempt to the node through the tunnel
+    if [ ! -z $tunnel ]; then
+       
+        ssh_tunnel $tunnel $node $user $port 
+        
+        if [ "$?" -gt "0" ]; then
+            cleanUp 5 "SSH Tunnel Failed"
+            return 1
+        fi 
+
+    #No tunnel specified, attempt to connect to the node directly.
+
+    else
+
+        ssh $user@$node exit
+       
+        if [ $? -eq 0 ]; then 
+             echo "Direct connnection to $user@$node successful."
+        else
+                    cleanUp 5 "SSH Tunnel Failed"
+             return 1
+        fi
+    fi
+
+
 
     echo -e "\nRSYNC: Establish SSH Connection to $node\n"
+    echo -e "   Copy files from $user@$node:$disk_image_dir/$id \n"
+   
     prompt_user "Press space to continue..."
-    
+ 
+    #If the tunnel variable is set, rsync using the ssh tunnel.
 
-    rsync -e "ssh -p $3" -vz $2@localhost:~/test .
+    if [ ! -z $tunnel ]; then
+  
+        echo -e "\n Using tunnel"
+    
+        if [ ! -e disk ]; then 
+              sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/ 
+        fi
+       
+        if [ ! -e disk.local ]; then
+              sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/
+        fi
+        
+    else
+    
+    #rsync directly to node
+
+        if [ ! -e disk ]; then 
+              sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/
+        fi
+        if [ ! -e disk.local ]; then
+              sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk.local $mount_dir_0/
+        fi
+    fi
+    
     echo -e "\n${Green}Stage 0: Get disk data from VM $id${NoColor}\n"
     
     if [ ! -e $mount_dir_0/disk ]; then
@@ -116,7 +212,9 @@ mountdisks() {
 create_tar() {
     
     #Remove the old log file (if it exists)
-    rm $1.log
+    if [ -e $1.log ]; then 
+          rm $1.log
+    fi
     #Remove the leading slash from the path
     path_tmp=$(echo $2 | cut -c2-)
 
@@ -218,12 +316,11 @@ cleanUp() {
 #Script Start:
 
 if [ -z $id ]; then
-    echo "${Red}Error: Must specify VM ID as argument"
+    echo -e "${Red}Error: Must specify VM ID as argument${NoColor}"
     exit 1
 fi 
 
 node=$(getNode $id) 
-node=128.250.164.237
 
 if [ "$node" = "1" ] || [ -z $node ] ; then
         cleanUp 1 "Could not find Node"
@@ -237,7 +334,8 @@ echo -e "${NoColor}VM: $id \nHosted on: $node\n"
 
 #If local files do not exist... rsync files from node
 
-getdisks $node j 5555
+getdisks $node $user $port
+
 mountdisks
 tardisks
 sleep 1
