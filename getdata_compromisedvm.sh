@@ -9,8 +9,8 @@ trap "cleanUp 2" SIGHUP SIGINT SIGTERM
 display_help() {
 
 echo -e "\nUsage:"
-echo "command -t tunnel destination_user tunnel_port full_path_to_identity_file"
-echo -e "command -t user@tunnel.com root 5555\n"
+echo "command -t tunnel destination_user tunnel_port -i full_path_to_identity_file VM_ID"
+echo -e "command -t user@tunnel.com root 5555 -i /home/user/ssh/id_rsa e2xsa3242423411a223423a12 \n"
 
 }
 
@@ -33,9 +33,11 @@ while [ $# -gt 0 ]; do
             tunnel=$1
             user=$2
             port=$3
-            identity_file=$4
             shift 4
             ;;
+        -i) shift
+            identity_file=$1
+            ;;    
         *)
             id=$1
             shift
@@ -45,6 +47,10 @@ while [ $# -gt 0 ]; do
 
 
 done
+
+if [ ! -z $identity_file ] || [ ! -e $identity_fiel ]; then
+        echo -e "\n You need to specify an identity file with the -i flag"  
+fi 
 
 spinner="-/|\\"
 
@@ -209,7 +215,7 @@ create_tar() {
     
     #Remove the old log file (if it exists)
     if [ -e $1.log ]; then 
-          rm $1.log
+        sudo rm $1.log
     fi
     #Remove the leading slash from the path
     path_tmp=$(echo $2 | cut -c2-)
@@ -222,14 +228,17 @@ create_tar() {
 
     #Create an archive of the mounted directory by running tar in the background
 
+
+
     (sudo tar -vzcf $1 -C / $path_tmp > $1.log) & pid_tmp1=$!
+
 
     #Whilst the tar process is still runnning display progress:
 
     while [ $(ps -p $pid_tmp1 | wc -l) -gt 1 ] ; do
-
+echo "wwat"
     #Check progress every 100ms.
-        sleep 0.1
+        sleep 0.2
     #Count number of files processed so far.
         so_far=$(cat $1.log | wc -l) 
     #Rotate spinner glyph
