@@ -8,17 +8,16 @@ trap "cleanUp 2" SIGHUP SIGINT SIGTERM
 
 display_help() {
 
-echo -e "\nget_disk_from_vm"
-echo -e "\nUsage:"
+echo -e "\nUsage: get_disk_from_vm [-u] [-h] <id>\n"
 #echo "command -t tunnel destination_user tunnel_port -i full_path_to_identity_file VM_ID"
 #echo -e "command -t user@tunnel.com root 5555 -i /home/user/ssh/id_rsa e2xsa3242423411a223423a12 \n"
-echo -e "\n get_disks_from_vm <id>"
-echo -e "\t-u Generate TempURL only from Swift.\n"
+echo -e "\t-u Generate TempURL only from Swift."
+echo -e "\t-h Display this help text.\n"
 echo -e "---------------------------------------------------"
 echo -e "Configuration variables below must be set:"
 echo -e "---------------------------------------------------\n"
 
-cat $0 | head -n 89 | tail -n 17
+cat $0 | head -n 91 | tail -n 19
 }
 
 tunnel=/dev/null
@@ -26,6 +25,7 @@ tunnel=/dev/null
 
 if [ $# -eq 0 ]; then
     display_help
+    exit 
 fi 
 
 while [ $# -gt 0 ]; do
@@ -70,7 +70,10 @@ spinner="-/|\\"
 #CONFIGURATION VARIABLES:
 
 #Tunnel Configuration
-tunnel="suse"
+
+#Hostname/Ip of tunnel. Leave blank if you do not wish to tunnel into the node.
+
+tunnel="suse" 
 user="root"
 port="5555"
 identity_file="~/.ssh/nectar_jm"
