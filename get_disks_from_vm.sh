@@ -8,10 +8,17 @@ trap "cleanUp 2" SIGHUP SIGINT SIGTERM
 
 display_help() {
 
+echo -e "\nget_disk_from_vm"
 echo -e "\nUsage:"
-echo "command -t tunnel destination_user tunnel_port -i full_path_to_identity_file VM_ID"
-echo -e "command -t user@tunnel.com root 5555 -i /home/user/ssh/id_rsa e2xsa3242423411a223423a12 \n"
-echo -e "-u Generate TempURL only from Swift."
+#echo "command -t tunnel destination_user tunnel_port -i full_path_to_identity_file VM_ID"
+#echo -e "command -t user@tunnel.com root 5555 -i /home/user/ssh/id_rsa e2xsa3242423411a223423a12 \n"
+echo -e "\n get_disks_from_vm <id>"
+echo -e "\t-u Generate TempURL only from Swift.\n"
+echo -e "---------------------------------------------------"
+echo -e "Configuration variables below must be set:"
+echo -e "---------------------------------------------------\n"
+
+cat $0 | head -n 89 | tail -n 17
 }
 
 tunnel=/dev/null
@@ -28,16 +35,16 @@ while [ $# -gt 0 ]; do
             display_help 
             exit
             ;;
-        -t)
-            shift
-            tunnel=$1
-            user=$2
-            port=$3
-            shift 3 
-            ;;
-        -i) shift
-            identity_file=$1
-            ;; 
+#        -t)
+#            shift
+#            tunnel=$1
+#            user=$2
+#            port=$3
+#            shift 3 
+#            ;;
+#        -i) shift
+#            identity_file=$1
+#            ;; 
         -u) shift
             url=1
             ;;   
@@ -51,20 +58,38 @@ while [ $# -gt 0 ]; do
 
 done
 
-if [ -z "$identity_file" ] || [ ! -e $identity_file ] && [ -z $url ]; then
-        echo -e "\n You need to specify an identity file with the -i flag"  
-        exit
-fi 
+#if [ -z "$identity_file" ] || [ ! -e $identity_file ] && [ -z $url ]; then
+#        echo -e "\n You need to specify an identity file with the -i flag"  
+#        exit
+#fi 
 
+#Spinner glyph
 
 spinner="-/|\\"
 
+#CONFIGURATION VARIABLES:
+
+#Tunnel Configuration
+tunnel="suse"
+user="root"
+port="5555"
+identity_file="~/.ssh/nectar_jm"
+
+#Variables for location of OpenStack credentials.
+
 rc_dir="/home/ubuntu/openstack"
+admin_rc=$rc_dir/openrc-admin.sh
+swift_rc=$rc_dir/nectar_image_quarantine-openrc.sh 
+
+#Storage location of data:
+
 mount_dir_0="/mnt/vdd/$id"
 mount_dir_1="$mount_dir_0/root"
 mount_dir_2="$mount_dir_0/ephemeral"
-disk_image_dir="/var/lib/nova/instances"
 
+#Instance share on node
+
+disk_image_dir="/var/lib/nova/instances"
 
 #Load Helper Functions and Variables
 
@@ -262,6 +287,13 @@ create_tar() {
 
     done
 
+    #Draw the progress bar one last time to show that the tar completed correctly.
+
+    #Draw progress bar
+    echo -ne "\r $(progressbar $so_far $num_files) $(echo -n $spinner | head -c 1) "
+    echo -n "Files: $so_far/$num_files - SizeOf $1: $(du -h $1 | cut -f1 -d$'\t') "      
+
+
 }
 
 tardisks() {
@@ -271,7 +303,7 @@ tardisks() {
     
     cd $mount_dir_0
 
-    echo -e "\n${Green}Stage 3: Create Compressed Archives (TAR) ${NoColor}"
+    echo -e "\n${Green}Stage 2: Create Compressed Archives (TAR) ${NoColor}"
 
     if [ ${#files[@]} -gt 0 ]; then
 
@@ -338,13 +370,13 @@ swiftupload() {
     #Draw progress bar
       
         echo -ne "\r$(echo -n $spinner | head -c 1) "
-        echo -n "Files: $so_far/$num_seg - SizeOf $(du -h $2 | cut -f1 -d$'\t') "      
+        echo -n "Segmnets: $so_far/$num_seg - SizeOf $(du -h $2 | cut -f1 -d$'\t') "      
 
     done
 }
 
 swift_send() {
-    echo -e "\n${Green}Stage 4: SWIFT Upload ${NoColor}"
+    echo -e "\n${Green}Stage 3: SWIFT Upload ${NoColor}"
     echo -e "\nUploading mount_dir_0/root.tar.gz to container $id " 
 
     swiftupload $id $mount_dir_0/root.tar.gz 2147483648
@@ -397,7 +429,7 @@ if [ -z $id ]; then
     exit 1
 fi 
 
-source $rc_dir/openrc-admin.sh
+source $admin_rc
 
 node=$(getNode $id) 
 
@@ -419,7 +451,7 @@ if [ -z $url ]; then
     mountdisks
     tardisks
 fi
-    source $rc_dir/nectar_image_quarantine-openrc.sh 
+    source $swift_rc
 if [ -z $url ]; then
     swift_send
 fi
