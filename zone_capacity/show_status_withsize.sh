@@ -33,6 +33,8 @@ done
 
 hostlist='/home/jmammarella/openstack/nodes/qh2-rcc'
 
+#hostlist='/home/jmammarella/openstack/nodes/np-rcc'
+
 exec 3<$hostlist
 
 while read -u3 HOST; do
@@ -68,7 +70,7 @@ while read -u3 HOST; do
 
         flav=`cat tmp6 | grep flavor | cut -f3 -d'|' | cut -f1 -d'(' | tr -d ' ' | tr -d '.'`
         state=`cat tmp6 | grep vm_state | cut -f3 -d'|' | tr -d ' '`
-        echo "Progess: $HOST $id $state $flav" 
+        echo "Progess: $HOST $id $state" 
         #Use flavor information to determine number of cores and memory reserved for VMs.
 
         done
