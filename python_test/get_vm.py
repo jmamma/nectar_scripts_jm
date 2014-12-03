@@ -1,15 +1,17 @@
 #!/usr/bin/python
 
 import os
+import shutil
 from novaclient.v1_1 import client as nova_client
+from jinja2 import Template
 
 flav = [ [4096, 1], [8192, 2], [32768, 8], [65536, 16], [16384, 4] ]
 
 class VM:
     NCPU = 0
     RAM = 0
-    STATE = 0
-    HOST = 0
+    STATE = ""
+    HOST = ""
     def __init__(self,NCPU,RAM,STATE,HOST):
         self.NCPU = NCPU
         self.RAM = RAM
@@ -19,11 +21,12 @@ class VM:
 class Server:
     processors = 0
     memory = 0
+    host = 0
     vm_array = [ VM ]
-    def __init__(self, processors, memory):
+    def __init__(self,host, processors, memory):
             self.processors = processors
             self.memory = memory
-    
+            self.host = host
     def add_vm(self,NCPU, RAM, STATE, HOST):
             x = VM(NCPU,RAM,STATE,HOST)
             self.vm_array.append(x)
@@ -51,7 +54,7 @@ def main():
 
     hosts = [ 'qh2-rcc9' ]
 
-    node = Server(23, 131905)
+    node = Server(hosts[0], 24, 131905)
 
     print  hosts[0] 
 
@@ -75,10 +78,124 @@ def main():
         RAM = flav[n][0] 
         STATE = getattr(instance, 'OS-EXT-STS:vm_state')
         print "CPUS: ",NCPU,"RAM: ",RAM, "STATE: ", STATE
-        node.add_vm(NCPU, RAM, STATE, "np-rcc9")
+        if int(RAM) > 0:
+            node.add_vm(NCPU, RAM, STATE, "np-rcc9")
 #   print nc.servers.list('detailed=True')
 #print nc.servers.list(a.id)
 
+    tmpl = Template(u'''\
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <title>{{ variable|escape }}</title>
+    </head>
+    <body>
+    <canvas id="myCanvas" width="600" height="500"></canvas>
+
+    <script src="classes.js"></script>
+    <script>
+    
+    var colors = [ 'red', 'yellow', 'green', 'blue', 'pink', 'orange', 'purple', 'skyblue', 'violet' ];
+    var offset_x = 25;
+    var offset_y = 25;
+    var length = 200;
+    var blocksize = 20;
+    var blockswide = 4; 
+    blocksize = (length) * blockswide / {{node.processors}} ;
+    
+
+    var server = new Server("{{node.host}}", {{node.processors}}, {{node.memory}}, blockswide);
+    
+    {%- for vm in vm_array %}
+    {% if vm.RAM > 0 %}server.add_vm({{ vm.NCPU }}, {{ vm.RAM }},"{{ vm.STATE }}","{{ vm.HOST }}"){% endif %} 
+    {%- endfor %}
+
+
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+
+
+    //length = ({{node.processors}} + 0) * blocksize / blockswide;
+    
+    context.beginPath();
+    context.rect(offset_x,offset_y,blockswide * blocksize, length);
+    context.stroke();
+
+    for (y = 0; y < {{node.processors}} / blockswide; y++) {
+        for (x = 0; x < blockswide; x++) {
+            context.beginPath();
+            context.rect(offset_x + x * blocksize,offset_y + y * blocksize, blocksize, blocksize);
+            context.stroke();
+        }
+    }
+
+    os = offset_x + blockswide * blocksize + offset_x;
+
+    context.beginPath();
+    context.rect(os,offset_y,blockswide * blocksize, length);
+    context.fillStyle = "lime";
+    context.fill();    
+    context.stroke();
+
+    sofar=length;
+    coresleft = server.processors;
+    for (i = 0; i < server.vm_array.length; i++) {
+        cores = server.vm_array[i].NCPUs;
+        a = 0 + coresleft % 4;
+        for (n = cores; n > 0; n--) {
+                context.beginPath();
+                context.rect(os + a,offset_y + (server.processors / coresleft) * blocksize, blocksize ,blocksize);
+        
+                context.fillStyle = colors[i];
+                context.fill();
+                context.stroke();
+                a = a + 1;
+                if (a > 4) {
+                a = 0;  
+                }
+
+        }
+        coresleft = coresleft - server.vm_array[i].NCPUs;
+
+        proportion = ((server.vm_array[i].RAM / server.memory) * length);
+    
+        context.beginPath();
+            context.rect(os,offset_y + sofar,blockswide * blocksize, proportion * -1);
+        context.fillStyle = colors[i];
+        context.fill();
+        context.stroke();
+        sofar = sofar - proportion;
+    
+    }
+
+    </script>
+    {% for x in range(1,node.processors) %}
+        {{ x }}
+    
+    {% endfor %}
+    
+    {%- for vm in vm_array %}
+        {{ vm.NCPU }}{% if not loop.last %},{% endif %}
+    {%- endfor %}
+    
+    </body>
+    </html>
+    ''')
+   
+
+    template_output = tmpl.render(                    
+    node = node,
+    variable = "Title of page",
+    vm_array = node.vm_array
+    )
+
+    print template_output
+
+    with open('output.html','w') as f:
+            f.write(template_output)
+
+    shutil.copyfile('output.html','/var/www/html/output.html')
+    shutil.copyfile('classes.js','/var/www/html/classes.js')
 #    return 0
 
 if __name__ == "__main__":
