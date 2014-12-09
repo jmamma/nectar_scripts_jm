@@ -1,3 +1,13 @@
+function Aggregate() {
+    this.server_array = [];
+}
+Aggregate.prototype.add_server = function(name, processors, memory, blockswide) {
+    x = new Server(name, processors, memory, blockswide);
+    this.server_array.push(x);
+    return x 
+}
+
+
 function Server(name, processors, memory, blockswide){
 
     this.name = name;
