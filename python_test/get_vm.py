@@ -128,13 +128,13 @@ def main():
         <script src="classes.js"></script>
         <script>
     
-        var colors = [ 'red', 'yellow', 'green', 'blue', 'pink', 'orange', 'purple', 'skyblue', 'violet', 'chocolate', 'firebrick', 'indigo', 'indianred', 'khaki', 'navy', 'olive', 'tan'];
+        var colors = [ 'red', 'yellow', 'green', 'blue', 'pink', 'orange', 'purple', 'skyblue', 'violet', 'chocolate', 'firebrick', 'indigo', 'indianred', 'khaki', 'navy', 'olive', 'tan', 'coral', 'cornsilk', 'crimson', 'darkcyan', 'moccasin'];
         var offset_x = 25;
         var offset_y = 25;
         var length = 200;
         var blocksize = 20;
         var blockswide = 4; 
-        var overextend = 16;
+        var overextend = 32;
         blocksize = (length) * blockswide / ({{node.processors}} + overextend) ;
 	''')
 
@@ -164,15 +164,18 @@ def main():
             shift_y = (length + offset_y * 2) * county;
 
             //length = ({{node.processors}} + 0) * blocksize / blockswide;
-    
+   
+            context.fillStyle = "black";
+            context.fillText(np_aggregate.server_array[key].name, offset_x + shift_x, offset_y / 2 + shift_y);
+
             context.beginPath();
-            context.rect(offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / 4);
+            context.rect(offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / blockswide);
             context.fillStyle = "lime";
             context.fill();    
      
             context.stroke();
 
-            for (y = 0; y < {{node.processors}} / blockswide; y++) {
+            for (y = 0; y < ({{node.processors}} + overextend) / blockswide; y++) {
                 for (x = 0; x < blockswide; x++) {
                     context.beginPath();
                     context.rect(shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize);
@@ -183,7 +186,7 @@ def main():
             os = offset_x + blockswide * blocksize + offset_x;
 
             context.beginPath();
-            context.rect(os,offset_y,blockswide * blocksize, length);
+            context.rect(os + shift_x,offset_y + shift_y,blockswide * blocksize, length);
             context.fillStyle = "lime";
             context.fill();    
             context.stroke();
@@ -197,46 +200,48 @@ def main():
             //Iterate through each node/server to
 
             for (i = 0; i < np_aggregate.server_array[key].vm_array.length; i++) {
+                            
+
+                    cores = np_aggregate.server_array[key].vm_array[i].NCPU;
     
-                cores = np_aggregate.server_array[key].vm_array[i].NCPU;
-    
-            for (n = cores; n > 0; n--) {
+                    for (n = cores; n > 0; n--) {
         
+                        context.beginPath();
+        
+                        context.rect(shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize);
+                        //context.rect(shift_x + offset_x + (x * blocksize),shift_y + offset_y + (blocksize * y), blocksize ,blocksize);
+        
+                        context.fillStyle = colors[i];
+                        context.fill();
+                        context.stroke();
+
+ 
+                        x = x + 1;
+                    
+                        if (x >= blockswide) {
+                         x = 0;  
+                         y = y + 1;
+                        }
+
+                 }
+
+             if (np_aggregate.server_array[key].vm_array[i].STATE != "suspended") {  
+
+                coresleft = coresleft - np_aggregate.server_array[key].vm_array[i].NCPUs;
+
+                proportion = ((np_aggregate.server_array[key].vm_array[i].RAM / np_aggregate.server_array[key].memory) * length);
+    
                 context.beginPath();
-        
-                context.rect(shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize);
-                //context.rect(shift_x + offset_x + (x * blocksize),shift_y + offset_y + (blocksize * y), blocksize ,blocksize);
-        
+                context.rect(shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1);
                 context.fillStyle = colors[i];
-    //            context.strokeStyle = 'white';
                 context.fill();
                 context.stroke();
-
-
-                x = x + 1;
-                
-                if (x >= 4) {
-                    x = 0;  
-                    y = y + 1;
-                }
-
+                sofar = sofar - proportion;
             }
-
-            coresleft = coresleft - np_aggregate.server_array[key].vm_array[i].NCPUs;
-
-            proportion = ((np_aggregate.server_array[key].vm_array[i].RAM / np_aggregate.server_array[key].memory) * length);
-    
-            context.beginPath();
-            context.rect(shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1);
-            context.fillStyle = colors[i];
-            context.fill();
-            context.stroke();
-            sofar = sofar - proportion;
-    
         }
 
         countx = countx + 1;
-        if (countx > 4) {
+        if (countx > blockswide) {
         county = county + 1;
         countx = 0;
         }
