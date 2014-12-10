@@ -62,25 +62,59 @@ DrawObj.prototype.render = function(context) {
     
 };
 
+function Layer(context) {
+    this.context = context;
+    this.drawobj_array = [];
+}
+
 function DrawingBoard() {
   
     var canvas = document.getElementById('myCanvas');
-    this.drawobj_array = [];
+    this.layer_array = [];
     
     this.canvas = canvas;    
     var context = canvas.getContext('2d');
     this.context = context;
 }
 
+DrawingBoard.prototype.add_layer = function() {
+    z = new Layer(this.context);
+    this.layer_array.push(z);
+}
 
-DrawingBoard.prototype.add_drawobj = function(type, text, x, y, h, w, fillstyle, object) {
+
+
+DrawingBoard.prototype.add_drawobj = function(type, text, x, y, h, w, fillstyle, object, layer) {
     y = new DrawObj(type, text, x, y, h, w, fillstyle, object);
-    this.drawobj_array.push(y);
+    this.layer_array[layer].drawobj_array.push(y);
 };
 
 DrawingBoard.prototype.renderall = function() {
-    for (i = 0; i < this.drawobj_array.length; i++) {
-        this.drawobj_array[i].render(this.context);
+   
+    for (n = 0; n < this.layer_array.length; n++) {
+            
+    if (n == 0) {
+     this.context.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
+    }
+    
+    var top  = window.pageYOffset || document.documentElement.scrollTop,
+    left = window.pageXOffset || document.documentElement.scrollLeft;
+    right =  window.innerWidth;
+    bottom = window.innerHeight;
+    exit = 0;
+    
+    for (i = 0; (i < this.layer_array[n].drawobj_array.length && exit == 0); i++) {
+   
+        if (this.layer_array[n].drawobj_array[i].y + this.layer_array[n].drawobj_array[i].h > top) { 
+        if (this.layer_array[n].drawobj_array[i].y > top + bottom + 200 || this.layer_array[n].drawobj_array[i].y + this.layer_array[n].drawobj_array[i].h < top) {
+            exit = 1; 
+        }
+
+        else {
+            this.layer_array[n].drawobj_array[i].render(this.context);
+        }
+        }
+    }
     }
 };
 

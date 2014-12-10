@@ -152,9 +152,10 @@ def main():
         {%- endfor %}
         
         var d_board = new DrawingBoard();
-
-        context = d_board.context;
         
+        context = d_board.context;
+        d_board.add_layer();
+        d_board.add_layer();
         countx = 0;
         county = 0;
 
@@ -167,21 +168,21 @@ def main():
 
             //length = ({{node.processors}} + 0) * blocksize / blockswide;
    
-            d_board.add_drawobj("text", np_aggregate.server_array[key].name, offset_x + shift_x, offset_y / 2 + shift_y, 0, 0, "black", np_aggregate.server_array[key]);
+            d_board.add_drawobj("text", np_aggregate.server_array[key].name, offset_x + shift_x, offset_y / 2 + shift_y, 0, 0, "black", np_aggregate.server_array[key],0);
 
-            d_board.add_drawobj("rect", "", offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / blockswide, "lime", np_aggregate.server_array[key]);
+            d_board.add_drawobj("rect", "", offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / blockswide, "lime", np_aggregate.server_array[key],0);
             context.stroke();
 
             for (y = 0; y < ({{node.processors}} + overextend) / blockswide; y++) {
                 for (x = 0; x < blockswide; x++) {
 
-            d_board.add_drawobj("rect","",shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize, "null", np_aggregate.server_array[key]);
+        //    d_board.add_drawobj("rect","",shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize, "null", np_aggregate.server_array[key],0);
                 }
             }
 
             os = offset_x + blockswide * blocksize + offset_x;
 
-            d_board.add_drawobj("rect","", os + shift_x,offset_y + shift_y,blockswide * blocksize, length, "lime", np_aggregate.server_array[key]);
+            d_board.add_drawobj("rect","", os + shift_x,offset_y + shift_y,blockswide * blocksize, length, "lime", np_aggregate.server_array[key],0);
 
             sofar=length;
             coresleft = np_aggregate.server_array[key].processors;
@@ -197,7 +198,7 @@ def main():
                     cores = np_aggregate.server_array[key].vm_array[i].NCPU;
     
                     for (n = cores; n > 0; n--) {
-            d_board.add_drawobj("rect","", shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, colors[i], np_aggregate.server_array[key].vm_array[i]);
+            d_board.add_drawobj("rect","", shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, colors[i], np_aggregate.server_array[key].vm_array[i],0);
  
                         x = x + 1;
                     
@@ -213,7 +214,7 @@ def main():
                 coresleft = coresleft - np_aggregate.server_array[key].vm_array[i].NCPUs;
 
                 proportion = ((np_aggregate.server_array[key].vm_array[i].RAM / np_aggregate.server_array[key].memory) * length);
-                d_board.add_drawobj("rect","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, colors[i], np_aggregate.server_array[key].vm_array[i]);
+                d_board.add_drawobj("rect","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, colors[i], np_aggregate.server_array[key].vm_array[i],0);
                 sofar = sofar - proportion;
             }
         }
@@ -226,8 +227,12 @@ def main():
 
         }
 //d_board.listall();
-
+        
+        function animationLoop() {
         d_board.renderall();
+        requestAnimationFrame(animationLoop);
+        }
+        requestAnimationFrame(animationLoop);
         </script>
     ''')
     tmpl_footer = Template(u'''\
