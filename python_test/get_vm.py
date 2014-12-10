@@ -150,8 +150,10 @@ def main():
         {%- endfor %}
 
         {%- endfor %}
-        var canvas = document.getElementById('myCanvas');
-        var context = canvas.getContext('2d');
+        
+        var d_board = new DrawingBoard();
+
+        context = d_board.context;
         
         countx = 0;
         county = 0;
@@ -165,31 +167,21 @@ def main():
 
             //length = ({{node.processors}} + 0) * blocksize / blockswide;
    
-            context.fillStyle = "black";
-            context.fillText(np_aggregate.server_array[key].name, offset_x + shift_x, offset_y / 2 + shift_y);
+            d_board.add_drawobj("text", np_aggregate.server_array[key].name, offset_x + shift_x, offset_y / 2 + shift_y, 0, 0, "black", np_aggregate.server_array[key]);
 
-            context.beginPath();
-            context.rect(offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / blockswide);
-            context.fillStyle = "lime";
-            context.fill();    
-     
+            d_board.add_drawobj("rect", "", offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / blockswide, "lime", np_aggregate.server_array[key]);
             context.stroke();
 
             for (y = 0; y < ({{node.processors}} + overextend) / blockswide; y++) {
                 for (x = 0; x < blockswide; x++) {
-                    context.beginPath();
-                    context.rect(shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize);
-                    context.stroke();
+
+            d_board.add_drawobj("rect","",shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize, "null", np_aggregate.server_array[key]);
                 }
             }
 
             os = offset_x + blockswide * blocksize + offset_x;
 
-            context.beginPath();
-            context.rect(os + shift_x,offset_y + shift_y,blockswide * blocksize, length);
-            context.fillStyle = "lime";
-            context.fill();    
-            context.stroke();
+            d_board.add_drawobj("rect","", os + shift_x,offset_y + shift_y,blockswide * blocksize, length, "lime", np_aggregate.server_array[key]);
 
             sofar=length;
             coresleft = np_aggregate.server_array[key].processors;
@@ -205,16 +197,7 @@ def main():
                     cores = np_aggregate.server_array[key].vm_array[i].NCPU;
     
                     for (n = cores; n > 0; n--) {
-        
-                        context.beginPath();
-        
-                        context.rect(shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize);
-                        //context.rect(shift_x + offset_x + (x * blocksize),shift_y + offset_y + (blocksize * y), blocksize ,blocksize);
-        
-                        context.fillStyle = colors[i];
-                        context.fill();
-                        context.stroke();
-
+            d_board.add_drawobj("rect","", shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, colors[i], np_aggregate.server_array[key].vm_array[i]);
  
                         x = x + 1;
                     
@@ -230,12 +213,7 @@ def main():
                 coresleft = coresleft - np_aggregate.server_array[key].vm_array[i].NCPUs;
 
                 proportion = ((np_aggregate.server_array[key].vm_array[i].RAM / np_aggregate.server_array[key].memory) * length);
-    
-                context.beginPath();
-                context.rect(shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1);
-                context.fillStyle = colors[i];
-                context.fill();
-                context.stroke();
+                d_board.add_drawobj("rect","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, colors[i], np_aggregate.server_array[key].vm_array[i]);
                 sofar = sofar - proportion;
             }
         }
@@ -247,6 +225,9 @@ def main():
         }
 
         }
+//d_board.listall();
+
+        d_board.renderall();
         </script>
     ''')
     tmpl_footer = Template(u'''\
