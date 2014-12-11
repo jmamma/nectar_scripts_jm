@@ -9,7 +9,6 @@ Aggregate.prototype.add_server = function(name, processors, memory, blockswide) 
 
 
 function Server(name, processors, memory, blockswide) {
-
     this.name = name;
     this.processors = processors;
     this.memory = memory;
@@ -18,21 +17,32 @@ function Server(name, processors, memory, blockswide) {
     this.array = [blockswide][Math.ceil(processors / blockswide)];
 }
 
-Server.prototype.add_vm = function(NCPU,RAM,STATE,HOST) {
+Server.prototype.add_vm = function(NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME) {
     x = new VM(NCPU,RAM,STATE,HOST); 
     this.vm_array.push(x);
 };
 
-function VM(NCPU, RAM, STATE, HOST) {
+function VM(NCPU, RAM, STATE, HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME) {
     this.NCPU = NCPU;
     this.RAM = RAM;
     this.STATE = STATE;
     this.HOST = HOST;
+    this.NAME = NAME;
+    this.UID = UID;
+    this.CREATED = CREATED;
+    this.IP4 = IP4;
+    this.VOLUME = VOLUME;
+    this.TENANT_ID = TENANT_ID;
+    this.USER_ID = USER_ID;
+    this.IMAGE = IMAGE;
+    this.SECURITY = SECURITY;
+    this.KEY_NAME = KEY_NAME;
 }
 
 
-function DrawObj(type, text, x, y, w, h, fillstyle, obj) {
+function DrawObj(type, objdesc, text, x, y, w, h, fillstyle, obj) {
     this.type = type;
+    this.objdesc = objdesc;
     this.text = text;
     this.x = x;
     this.y = y;
@@ -82,12 +92,59 @@ DrawingBoard.prototype.add_layer = function() {
     this.layer_array.push(z);
 }
 
+function in_area(x1, y1, x, y, w, h) {
+    a = Boolean(x1 > x && x1 < x + w);
+    b = Boolean(y1 > y && y1 < y + h);
+    return Boolean(a && b);
+}
 
 
-DrawingBoard.prototype.add_drawobj = function(type, text, x, y, h, w, fillstyle, object, layer) {
-    y = new DrawObj(type, text, x, y, h, w, fillstyle, object);
+DrawingBoard.prototype.add_drawobj = function(type, objdesc, text, x, y, h, w, fillstyle, object, layer) {
+    y = new DrawObj(type, objdesc, text, x, y, h, w, fillstyle, object);
     this.layer_array[layer].drawobj_array.push(y);
 };
+
+DrawingBoard.prototype.checkmouse = function() {
+
+        this.layer_array[1].drawobj_array.length = 0;
+//        d_board.add_drawobj("text","yaaaaay",mouse_x,mouse_y,0,0,"black",null,1);
+        n = 0;       
+ 
+   var top  = window.pageYOffset || document.documentElement.scrollTop,
+ left = window.pageXOffset || document.documentElement.scrollLeft;
+ right =  window.innerWidth;
+ bottom = window.innerHeight;
+
+        exit = 0;
+        for (i = 0; (i < this.layer_array[n].drawobj_array.length && exit == 0); i++) {
+    
+            //Don't process objects unless their y position is greater than the top of visible page portion
+            if (this.layer_array[n].drawobj_array[i].y + this.layer_array[n].drawobj_array[i].h > top) { 
+
+                    if (this.layer_array[n].drawobj_array[i].y > top + bottom + 200 || this.layer_array[n].drawobj_array[i].y + this.layer_array[n].drawobj_array[i].h < top) {
+                    exit = 1; 
+                }       
+
+            else {
+
+                if (in_area(mouse_x, mouse_y, this.layer_array[n].drawobj_array[i].x, this.layer_array[n].drawobj_array[i].y, this.layer_array[n].drawobj_array[i].w, this.layer_array[n].drawobj_array[i].h)) {
+                
+                    if (this.layer_array[n].drawobj_array[i].objdesc == "cpu") {
+                        text = this.layer_array[n].drawobj_array[i].obj.HOST;
+                         d_board.add_drawobj("rect","info","",mouse_x,mouse_y,100,30,"orange",null,1); 
+                           d_board.add_drawobj("text","info",text,mouse_x + 5,mouse_y +15,0,0,"white",null,1);
+                    
+                    }
+
+                }
+            
+
+            }   
+        }       
+        }       
+
+        }
+
 
 DrawingBoard.prototype.renderall = function() {
    

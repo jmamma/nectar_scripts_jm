@@ -13,11 +13,20 @@ class VM:
     RAM = 0
     STATE = ""
     HOST = ""
-    def __init__(self,NCPU,RAM,STATE,HOST):
+    def __init__(self,NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME):
         self.NCPU = NCPU
         self.RAM = RAM
         self.STATE = STATE
         self.HOST = HOST
+        self.NAME = NAME
+        self.UID = UID
+        self.CREATED = CREATED
+        self.IP4 = VOLUME
+        self.TENANT_ID = TENANT_ID
+        self.USER_ID = USER_ID
+        self.IMAGE = IMAGE
+        self.SECURITY = SECURITY
+        self.KEY_NAME = KEY_NAME
 
 class Server:
     processors = 0
@@ -30,8 +39,8 @@ class Server:
             self.processors = processors
             self.memory = memory
             self.host = host
-    def add_vm(self,NCPU, RAM, STATE, HOST):
-            x = VM(NCPU,RAM,STATE,HOST)
+    def add_vm(self,NCPU, RAM, STATE, HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME):
+            x = VM(NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME)
             self.vm_array.append(x)
 
 class Aggregate:
@@ -99,9 +108,22 @@ def main():
             NCPU = flav[n][1]
             RAM = flav[n][0] 
             STATE = getattr(instance, 'OS-EXT-STS:vm_state')
+            NAME = getattr(instance, 'name')
+            UID = getattr(instance, 'id')
+            CREATED = getattr(instance, 'created')
+            IP4 = getattr(instance, 'accessIPv4')
+            VOLUME = getattr(instance, 'os-extended-volumes:volumes_attached')
+            TENANT_ID = getattr(instance, 'tenant_id')
+            USER_ID = getattr(instance, 'user_id')
+            IMAGE = getattr(instance, 'image')
+            SECURITY = "null"
+            #SECURITY = getattr(instance, 'security_groups')
+            KEY = getattr(instance, 'key_name')
+
+
             print STATE
             if int(RAM) > 0:
-                node.add_vm(NCPU, RAM, STATE, node.host)
+                node.add_vm(NCPU, RAM, STATE, node.host, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY)
         c = c + 1
        
         l = 0
@@ -123,7 +145,7 @@ def main():
         <title>{{ variable|escape }}</title>
         </head>
         <body>
-        <canvas id="myCanvas" width="1200" height="10000"></canvas>
+        <canvas onmousemove="updateMouse(event)" id="myCanvas" width="1200" height="10000"></canvas>
 
         <script src="classes.js"></script>
         <script>
@@ -168,21 +190,21 @@ def main():
 
             //length = ({{node.processors}} + 0) * blocksize / blockswide;
    
-            d_board.add_drawobj("text", np_aggregate.server_array[key].name, offset_x + shift_x, offset_y / 2 + shift_y, 0, 0, "black", np_aggregate.server_array[key],0);
+            d_board.add_drawobj("text","heading", np_aggregate.server_array[key].name, offset_x + shift_x, offset_y / 2 + shift_y, 0, 0, "black", np_aggregate.server_array[key],0);
 
-            d_board.add_drawobj("rect", "", offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / blockswide, "lime", np_aggregate.server_array[key],0);
+            d_board.add_drawobj("rect","server_cpu", "", offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / blockswide, "lime", np_aggregate.server_array[key],0);
             context.stroke();
 
             for (y = 0; y < ({{node.processors}} + overextend) / blockswide; y++) {
                 for (x = 0; x < blockswide; x++) {
 
-        //    d_board.add_drawobj("rect","",shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize, "null", np_aggregate.server_array[key],0);
+        //    d_board.add_drawobj("rect", "cpu", "",shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize, "null", np_aggregate.server_array[key],0);
                 }
             }
 
             os = offset_x + blockswide * blocksize + offset_x;
 
-            d_board.add_drawobj("rect","", os + shift_x,offset_y + shift_y,blockswide * blocksize, length, "lime", np_aggregate.server_array[key],0);
+            d_board.add_drawobj("rect","server_ram","", os + shift_x,offset_y + shift_y,blockswide * blocksize, length, "lime", np_aggregate.server_array[key],0);
 
             sofar=length;
             coresleft = np_aggregate.server_array[key].processors;
@@ -198,7 +220,7 @@ def main():
                     cores = np_aggregate.server_array[key].vm_array[i].NCPU;
     
                     for (n = cores; n > 0; n--) {
-            d_board.add_drawobj("rect","", shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, colors[i], np_aggregate.server_array[key].vm_array[i],0);
+            d_board.add_drawobj("rect","cpu","", shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, colors[i], np_aggregate.server_array[key].vm_array[i],0);
  
                         x = x + 1;
                     
@@ -214,7 +236,7 @@ def main():
                 coresleft = coresleft - np_aggregate.server_array[key].vm_array[i].NCPUs;
 
                 proportion = ((np_aggregate.server_array[key].vm_array[i].RAM / np_aggregate.server_array[key].memory) * length);
-                d_board.add_drawobj("rect","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, colors[i], np_aggregate.server_array[key].vm_array[i],0);
+                d_board.add_drawobj("rect","ram","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, colors[i], np_aggregate.server_array[key].vm_array[i],0);
                 sofar = sofar - proportion;
             }
         }
@@ -228,7 +250,13 @@ def main():
         }
 //d_board.listall();
         
+        var mouse_x = 0, mouse_y = 0;
+        function updateMouse(event) {
+        mouse_x = event.clientX;
+        mouse_y = event.clientY;
+        }
         function animationLoop() {
+        d_board.checkmouse(); 
         d_board.renderall();
         requestAnimationFrame(animationLoop);
         }
