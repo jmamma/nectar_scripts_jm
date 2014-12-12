@@ -3,6 +3,7 @@
 import os
 import shutil
 import yaml
+import ast
 from classes import Instance, Server, Aggregate
 
 from novaclient.v1_1 import client as nova_client
@@ -75,18 +76,23 @@ def main():
             n = int(str(f['id']))
             NCPU = flav[n][1]
             RAM = flav[n][0] 
-            STATE = getattr(instance, 'OS-EXT-STS:vm_state')
-            NAME = getattr(instance, 'name')
-            UID = getattr(instance, 'id')
-            CREATED = getattr(instance, 'created')
+            STATE = str(getattr(instance, 'OS-EXT-STS:vm_state'))
+            NAME = str(getattr(instance, 'name'))
+            UID = str(getattr(instance, 'id'))
+            CREATED = str(getattr(instance, 'created'))
             IP4 = getattr(instance, 'accessIPv4')
-            VOLUME = getattr(instance, 'os-extended-volumes:volumes_attached')
-            TENANT_ID = getattr(instance, 'tenant_id')
-            USER_ID = getattr(instance, 'user_id')
-            IMAGE = str(getattr(instance, 'image'))
+            VOLUME = str(getattr(instance, 'os-extended-volumes:volumes_attached'))
+            TENANT_ID = str(getattr(instance, 'tenant_id'))
+            USER_ID = str(getattr(instance, 'user_id'))
+            print vms_on_host
+            print type(getattr(instance, 'image'))
+            #getattr(getattr(instance, 'image'), 'id')
+            temp = getattr(instance, 'image')
+            #IMAGE = "null"
+            IMAGE = str(temp['id']);
             SECURITY = "null"
             #SECURITY = getattr(instance, 'security_groups')
-            KEY = getattr(instance, 'key_name')
+            KEY = str(getattr(instance, 'key_name'))
 
 
             print STATE
@@ -97,7 +103,7 @@ def main():
         l = 0
         
         while l < len(node.vm_array):
-        #  print node.vm_array[l]
+            print node.vm_array[l]
             print yaml.dump(node.vm_array[l])
             l = l + 1
         print len(node.vm_array)
