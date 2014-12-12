@@ -2,6 +2,9 @@
 
 import os
 import shutil
+import yaml
+from classes import Instance, Server, Aggregate
+
 from novaclient.v1_1 import client as nova_client
 from jinja2 import Environment, FileSystemLoader, Template
 
@@ -12,48 +15,6 @@ print os.path.join(os.path.dirname(__file__), 'templates')
 
 #env = Environment(loader=FileSystemLoader("templates"),autoescape=True)
 env = Environment(loader=FileSystemLoader("templates"),autoescape=True)
-
-class VM:
-    NCPU = 0
-    RAM = 0
-    STATE = ""
-    HOST = ""
-    def __init__(self,NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME):
-        self.NCPU = NCPU
-        self.RAM = RAM
-        self.STATE = STATE
-        self.HOST = HOST
-        self.NAME = NAME
-        self.UID = UID
-        self.CREATED = CREATED
-        self.IP4 = VOLUME
-        self.TENANT_ID = TENANT_ID
-        self.USER_ID = USER_ID
-        self.IMAGE = IMAGE
-        self.SECURITY = SECURITY
-        self.KEY_NAME = KEY_NAME
-
-class Server:
-    processors = 0
-    memory = 0
-    host = 0
-    def __init__(self,host, processors, memory):
-            
-            self.vm_array = [ ]
-    
-            self.processors = processors
-            self.memory = memory
-            self.host = host
-    def add_vm(self,NCPU, RAM, STATE, HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME):
-            x = VM(NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME)
-            self.vm_array.append(x)
-
-class Aggregate:
-    def __init__(self, hostlist, processors, memory):
-        self.server_array = [ ]
-        for host in hostlist:
-            x = Server(host,processors,memory)
-            self.server_array.append(x)
 
 
 def get_nova_client():
@@ -122,7 +83,7 @@ def main():
             VOLUME = getattr(instance, 'os-extended-volumes:volumes_attached')
             TENANT_ID = getattr(instance, 'tenant_id')
             USER_ID = getattr(instance, 'user_id')
-            IMAGE = getattr(instance, 'image')
+            IMAGE = str(getattr(instance, 'image'))
             SECURITY = "null"
             #SECURITY = getattr(instance, 'security_groups')
             KEY = getattr(instance, 'key_name')
@@ -136,7 +97,8 @@ def main():
         l = 0
         
         while l < len(node.vm_array):
-            print node.vm_array[l]
+        #  print node.vm_array[l]
+            print yaml.dump(node.vm_array[l])
             l = l + 1
         print len(node.vm_array)
         print len(np_aggregate.server_array[1].vm_array)          
