@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+        <title>{{ variable|escape }}</title>
+        </head>
+        <body>
+        <canvas onmousemove="updateMouse(event)" id="myCanvas" width="1400" height="10000"></canvas>
+
+        <script src="classes.js"></script>
+        <script>
+    
+        var colors = [ 'red', 'yellow', 'green', 'blue', 'pink', 'orange', 'purple', 'skyblue', 'violet', 'chocolate', 'firebrick', 'indigo', 'indianred', 'khaki', 'navy', 'olive', 'tan', 'coral', 'cornsilk', 'crimson', 'darkcyan', 'moccasin'];
+        var offset_x = 25;
+        var offset_y = 25;
+        var length = 200;
+        var blocksize = 20;
+        var blockswide = 4; 
+        var overextend = 32;
+        blocksize = (length) * blockswide / ({{node.processors}} + overextend) ;
+

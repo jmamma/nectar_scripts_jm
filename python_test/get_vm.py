@@ -3,10 +3,15 @@
 import os
 import shutil
 from novaclient.v1_1 import client as nova_client
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader, Template
 
 flav = [ [4096, 1], [8192, 2], [32768, 8], [65536, 16], [16384, 4] ]
 
+print os.getcwd()
+print os.path.join(os.path.dirname(__file__), 'templates')
+
+#env = Environment(loader=FileSystemLoader("templates"),autoescape=True)
+env = Environment(loader=FileSystemLoader("templates"),autoescape=True)
 
 class VM:
     NCPU = 0
@@ -142,161 +147,9 @@ def main():
 
     tmpl_header = env.get_template('template_header.html') 
     
-    Template(u'''\
-        <!DOCTYPE html>
-        <html>
-        <head>
-        <title>{{ variable|escape }}</title>
-        </head>
-        <body>
-        <canvas onmousemove="updateMouse(event)" id="myCanvas" width="1400" height="10000"></canvas>
-
-        <script src="classes.js"></script>
-        <script>
-    
-        var colors = [ 'red', 'yellow', 'green', 'blue', 'pink', 'orange', 'purple', 'skyblue', 'violet', 'chocolate', 'firebrick', 'indigo', 'indianred', 'khaki', 'navy', 'olive', 'tan', 'coral', 'cornsilk', 'crimson', 'darkcyan', 'moccasin'];
-        var offset_x = 25;
-        var offset_y = 25;
-        var length = 200;
-        var blocksize = 20;
-        var blockswide = 4; 
-        var overextend = 32;
-        blocksize = (length) * blockswide / ({{node.processors}} + overextend) ;
-	''')
-
-    tmpl_body = Template(u'''\
-        
-        var np_aggregate = new Aggregate();
-
-        {% for node_x in np_aggregate.server_array %}
-        current_server = np_aggregate.add_server("{{node_x.host}}", {{node_x.processors}}, {{node_x.memory}}, blockswide);
-    
-        {%- for vm in node_x.vm_array %}
-        {% if vm.RAM > 0 %}current_server.add_vm({{ vm.NCPU }}, {{ vm.RAM }},"{{ vm.STATE }}","{{ vm.HOST }}","{{ vm.NAME }}","{{vm.UID}}","{{vm.CREATED}}","{{vm.IP4}}","{{vm.VOLUME}}","{{vm.TENANT_ID}}","{{vm.USER_ID}}","{{vm.SECURITY}}","{{vm.KEY_NAME}}");{% endif %} 
-        {%- endfor %}
-
-        {%- endfor %}
-        
-        var d_board = new DrawingBoard();
-        
-        context = d_board.context;
-        d_board.add_layer();
-        d_board.add_layer();
-        countx = 0;
-        county = 0;
-
-        key = 0
-
-        for (key = 0; key < np_aggregate.server_array.length; key++) {
-
-            shift_x = (blockswide * blocksize * 2 + offset_x * 2) * countx; 
-            shift_y = (length + offset_y * 2) * county;
-
-            //length = ({{node.processors}} + 0) * blocksize / blockswide;
+    tmpl_body = env.get_template('template_body.html');
    
-            d_board.add_drawobj("text","heading", np_aggregate.server_array[key].name, offset_x + shift_x, offset_y / 2 + shift_y, 0, 0, "black", np_aggregate.server_array[key],0);
-
-            d_board.add_drawobj("rect","server_cpu", "", offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * {{node.processors}} / blockswide, "lime", np_aggregate.server_array[key],0);
-            context.stroke();
-
-            for (y = 0; y < ({{node.processors}} + overextend) / blockswide; y++) {
-                for (x = 0; x < blockswide; x++) {
-
-        //    d_board.add_drawobj("rect", "cpu", "",shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize, "null", np_aggregate.server_array[key],0);
-                }
-            }
-
-            os = offset_x + blockswide * blocksize + offset_x;
-
-            d_board.add_drawobj("rect","server_ram","", os + shift_x,offset_y + shift_y,blockswide * blocksize, length, "lime", np_aggregate.server_array[key],0);
-
-            sofar=length;
-            coresleft = np_aggregate.server_array[key].processors;
-    
-            x = 0
-            y = 0
-            
-            totalramusage = 0;
-            totalcpuusage = 0;
-            //Iterate through each node/server to
-
-            for (i = 0; i < np_aggregate.server_array[key].vm_array.length; i++) {
-                            
-
-                    cores = np_aggregate.server_array[key].vm_array[i].NCPU;
-    
-                    for (n = cores; n > 0; n--) {
-            d_board.add_drawobj("rect","cpu","", shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, colors[i], np_aggregate.server_array[key].vm_array[i],0);
-                        if (np_aggregate.server_array[key].vm_array[i].STATE != "active") {
-            d_board.add_drawobj("cross","cpu","",shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, "white", np_aggregate.server_array[key].vm_array[i],0);
- }
-                        x = x + 1;
-                    
-                        if (x >= blockswide) {
-                         x = 0;  
-                         y = y + 1;
-                        }
-
-                 }
-
-             if (np_aggregate.server_array[key].vm_array[i].STATE != "suspended") {  
-
-                coresleft = coresleft - np_aggregate.server_array[key].vm_array[i].NCPUs;
-
-                proportion = ((np_aggregate.server_array[key].vm_array[i].RAM / np_aggregate.server_array[key].memory) * length);
-                d_board.add_drawobj("rect","ram","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, colors[i], np_aggregate.server_array[key].vm_array[i],0);
-                
-                if (np_aggregate.server_array[key].vm_array[i].STATE != "active") {
-                d_board.add_drawobj("cross","ram","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, "white", np_aggregate.server_array[key].vm_array[i],0);
-
-                }
-                
-                sofar = sofar - proportion;
-                totalramusage = totalramusage + np_aggregate.server_array[key].vm_array[i].RAM;
-                totalcpuusage = totalcpuusage + np_aggregate.server_array[key].vm_array[i].NCPU;
-            }
-                np_aggregate.server_array[key].totalramusage = totalramusage;
-                np_aggregate.server_array[key].totalcpuusage = totalcpuusage;
-        
-        }
-
-        countx = countx + 1;
-        if (countx > blockswide) {
-        county = county + 1;
-        countx = 0;
-        }
-
-        }
-//d_board.listall();
-        
-        var mouse_x = 0, mouse_y = 0;
-        function updateMouse(event) {
-        mouse_x = event.clientX - 5 +  window.pageXOffset || document.documentElement.scrollLeft;
-        mouse_y = event.clientY - 5 + window.pageYOffset || document.documentElement.scrollTop;
-        }
-        function animationLoop() {
-        d_board.checkmouse(); 
-        d_board.renderall();
-        requestAnimationFrame(animationLoop);
-        }
-        requestAnimationFrame(animationLoop);
-        </script>
-    ''')
-    tmpl_footer = Template(u'''\
-	
-        {% for x in range(1,node.processors) %}
-            {{ x }}
-    
-        {% endfor %}
-    
-        {%- for vm in vm_array %}
-            {{ vm.NCPU }}{% if not loop.last %},{% endif %}
-        {%- endfor %}
-    
-        </body>
-        </html>
-        ''')
-   
+    tmpl_footer = env.get_template('template_footer.html');
 
     template_output = tmpl_header.render(
     np_aggregate = np_aggregate,

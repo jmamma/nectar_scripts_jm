@@ -1,0 +1,13 @@
+ 
+{% for x in range(1,node.processors) %}
+                  {{ x }}
+          
+              {% endfor %}
+          
+              {%- for vm in vm_array %}
+                  {{ vm.NCPU }}{% if not loop.last %},{% endif %}
+              {%- endfor %}
+       
+        </body>
+        </html>
+
