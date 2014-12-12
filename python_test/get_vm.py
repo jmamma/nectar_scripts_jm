@@ -74,6 +74,8 @@ MEMORY = 131905
 
 def main():
     array = [ 'np-rcc78', 'np-rcc84', 'np-rcc30', 'np-rcc62', 'np-rcc19', 'np-rcc83', 'np-rcc36', 'np-rcc38', 'np-rcc10', 'np-rcc41', 'np-rcc68', 'np-rcc37', 'np-rcc56', 'np-rcc76', 'np-rcc74', 'np-rcc17', 'np-rcc42', 'np-rcc5', 'np-rcc6', 'np-rcc51', 'np-rcc28',     'np-rcc50', 'np-rcc64', 'np-rcc82', 'np-rcc9', 'np-rcc60', 'np-rcc31', 'np-rcc33', 'np-rcc34', 'np-rcc39', 'np-rcc40', 'np-rcc43', 'np-rcc44', 'np-rcc45', 'np-rcc46', 'np-rcc47', 'np-rcc48', 'np-rcc49', 'np-rcc52', 'np-rcc53', 'np-rcc54', 'np-rcc55', 'np-rcc57', 'np-rcc59', 'np-    rcc35', 'np-rcc7', 'np-rcc8', 'np-rcc13', 'np-rcc14', 'np-rcc15', 'np-rcc16', 'np-rcc18', 'np-rcc20', 'np-rcc21', 'np-rcc23', 'np-rcc24', 'np-rcc25', 'np-rcc26', 'np-rcc27', 'np-rcc29', 'np-rcc63', 'np-rcc65', 'np-rcc66', 'np-rcc67', 'np-rcc69', 'np-rcc70', 'np-rcc71', 'np-rcc72'    , 'np-rcc73', 'np-rcc75', 'np-rcc77', 'np-rcc79', 'np-rcc80', 'np-rcc81', 'np-rcc32', 'np-rcc61', 'np-rcc58' ]
+    #array = [ 'np-rcc60', 'np-rcc31', 'np-rcc33', 'np-rcc34', 'np-rcc39', 'np-rcc40', 'np-rcc43', 'np-rcc44', 'np-rcc45', 'np-rcc46', 'np-rcc47', 'np-rcc48', 'np-rcc49', 'np-rcc52', 'np-rcc53', 'np-rcc54', 'np-rcc55', 'np-rcc57', 'np-rcc59', 'np-    rcc35', 'np-rcc7', 'np-rcc8', 'np-rcc13', 'np-rcc14', 'np-rcc15', 'np-rcc16', 'np-rcc18', 'np-rcc20', 'np-rcc21', 'np-rcc23', 'np-rcc24', 'np-rcc25', 'np-rcc26', 'np-rcc27', 'np-rcc29', 'np-rcc63', 'np-rcc65', 'np-rcc66', 'np-rcc67', 'np-rcc69', 'np-rcc70', 'np-rcc71', 'np-rcc72'    , 'np-rcc73', 'np-rcc75', 'np-rcc77', 'np-rcc79', 'np-rcc80', 'np-rcc81', 'np-rcc32', 'np-rcc61', 'np-rcc58' ]
+
     array.sort()
     np_aggregate = Aggregate(array, CORES, MEMORY)
 
@@ -138,14 +140,16 @@ def main():
 #   print nc.servers.list('detailed=True')
 #print nc.servers.list(a.id)
 
-    tmpl_header = Template(u'''\
+    tmpl_header = env.get_template('template_header.html') 
+    
+    Template(u'''\
         <!DOCTYPE html>
         <html>
         <head>
         <title>{{ variable|escape }}</title>
         </head>
         <body>
-        <canvas onmousemove="updateMouse(event)" id="myCanvas" width="1200" height="10000"></canvas>
+        <canvas onmousemove="updateMouse(event)" id="myCanvas" width="1400" height="10000"></canvas>
 
         <script src="classes.js"></script>
         <script>
@@ -168,7 +172,7 @@ def main():
         current_server = np_aggregate.add_server("{{node_x.host}}", {{node_x.processors}}, {{node_x.memory}}, blockswide);
     
         {%- for vm in node_x.vm_array %}
-        {% if vm.RAM > 0 %}current_server.add_vm({{ vm.NCPU }}, {{ vm.RAM }},"{{ vm.STATE }}","{{ vm.HOST }}");{% endif %} 
+        {% if vm.RAM > 0 %}current_server.add_vm({{ vm.NCPU }}, {{ vm.RAM }},"{{ vm.STATE }}","{{ vm.HOST }}","{{ vm.NAME }}","{{vm.UID}}","{{vm.CREATED}}","{{vm.IP4}}","{{vm.VOLUME}}","{{vm.TENANT_ID}}","{{vm.USER_ID}}","{{vm.SECURITY}}","{{vm.KEY_NAME}}");{% endif %} 
         {%- endfor %}
 
         {%- endfor %}
@@ -211,7 +215,9 @@ def main():
     
             x = 0
             y = 0
-
+            
+            totalramusage = 0;
+            totalcpuusage = 0;
             //Iterate through each node/server to
 
             for (i = 0; i < np_aggregate.server_array[key].vm_array.length; i++) {
@@ -221,7 +227,9 @@ def main():
     
                     for (n = cores; n > 0; n--) {
             d_board.add_drawobj("rect","cpu","", shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, colors[i], np_aggregate.server_array[key].vm_array[i],0);
- 
+                        if (np_aggregate.server_array[key].vm_array[i].STATE != "active") {
+            d_board.add_drawobj("cross","cpu","",shift_x + offset_x + (x * blocksize),shift_y + offset_y + length - (blocksize * (y + 1)), blocksize ,blocksize, "white", np_aggregate.server_array[key].vm_array[i],0);
+ }
                         x = x + 1;
                     
                         if (x >= blockswide) {
@@ -237,8 +245,19 @@ def main():
 
                 proportion = ((np_aggregate.server_array[key].vm_array[i].RAM / np_aggregate.server_array[key].memory) * length);
                 d_board.add_drawobj("rect","ram","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, colors[i], np_aggregate.server_array[key].vm_array[i],0);
+                
+                if (np_aggregate.server_array[key].vm_array[i].STATE != "active") {
+                d_board.add_drawobj("cross","ram","",shift_x + os,shift_y + offset_y + sofar,blockswide * blocksize, proportion * -1, "white", np_aggregate.server_array[key].vm_array[i],0);
+
+                }
+                
                 sofar = sofar - proportion;
+                totalramusage = totalramusage + np_aggregate.server_array[key].vm_array[i].RAM;
+                totalcpuusage = totalcpuusage + np_aggregate.server_array[key].vm_array[i].NCPU;
             }
+                np_aggregate.server_array[key].totalramusage = totalramusage;
+                np_aggregate.server_array[key].totalcpuusage = totalcpuusage;
+        
         }
 
         countx = countx + 1;
@@ -252,8 +271,8 @@ def main():
         
         var mouse_x = 0, mouse_y = 0;
         function updateMouse(event) {
-        mouse_x = event.clientX;
-        mouse_y = event.clientY;
+        mouse_x = event.clientX - 5 +  window.pageXOffset || document.documentElement.scrollLeft;
+        mouse_y = event.clientY - 5 + window.pageYOffset || document.documentElement.scrollTop;
         }
         function animationLoop() {
         d_board.checkmouse(); 
