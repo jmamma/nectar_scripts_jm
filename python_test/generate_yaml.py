@@ -53,7 +53,6 @@ def main():
 #    print nc.hosts.get(np-rcc9')   
 #    for host in hosts:
 
-    print np_aggregate.server_array
 
     c = 1
     print "okay" 
@@ -81,7 +80,6 @@ def main():
             VOLUME = str(getattr(instance, 'os-extended-volumes:volumes_attached'))
             TENANT_ID = str(getattr(instance, 'tenant_id'))
             USER_ID = str(getattr(instance, 'user_id'))
-            print vms_on_host
             print type(getattr(instance, 'image'))
             #getattr(getattr(instance, 'image'), 'id')
             temp = getattr(instance, 'image')
@@ -100,19 +98,11 @@ def main():
         c = c + 1
    
         l = 0
-    
+     
+   
+    outputf.write(yaml.dump(np_aggregate))
 
-        #Dump Yaml
-        outputf.write(yaml.dump(node))
     
-        while l < len(node.vm_array):
-            print node.vm_array[l]
-            outputf.write(yaml.dump(node.vm_array[l]))
-            l = l + 1
-    
-    print len(node.vm_array)
-    print len(np_aggregate.server_array[1].vm_array)          
-    print len(np_aggregate.server_array[16].vm_array)          
 
 
 
