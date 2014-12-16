@@ -11,7 +11,8 @@ class Instance:
         self.NAME = NAME
         self.UID = UID
         self.CREATED = CREATED
-        self.IP4 = VOLUME
+        self.IP4 = IP4
+        self.VOLUME = VOLUME
         self.TENANT_ID = TENANT_ID
         self.USER_ID = USER_ID
         self.IMAGE = IMAGE

@@ -76,8 +76,14 @@ def main():
             NAME = str(getattr(instance, 'name'))
             UID = str(getattr(instance, 'id'))
             CREATED = str(getattr(instance, 'created'))
-            IP4 = getattr(instance, 'accessIPv4')
-            VOLUME = str(getattr(instance, 'os-extended-volumes:volumes_attached'))
+        
+            IP4 = str(getattr(instance, 'accessIPv4'))
+
+            volstr = ""
+            for vol in getattr(instance, 'os-extended-volumes:volumes_attached'):
+                volstr = volstr + " " +  str(vol['id'])
+            VOLUME = volstr
+
             TENANT_ID = str(getattr(instance, 'tenant_id'))
             USER_ID = str(getattr(instance, 'user_id'))
             print type(getattr(instance, 'image'))
