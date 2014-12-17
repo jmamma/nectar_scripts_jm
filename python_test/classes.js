@@ -58,6 +58,10 @@ function DrawObj(type, objdesc, text, x, y, w, h, fillstyle, obj) {
 
 DrawObj.prototype.render = function(context) {
    
+     if (this.type == "rect_nofill") {
+        context.strokeStyle = this.fillstyle;
+        context.strokeRect(this.x,this.y,this.w,this.h); 
+     }
      if (this.type == "rect") {
          context.beginPath();
          context.rect(this.x,this.y,this.w,this.h);
@@ -129,8 +133,9 @@ DrawingBoard.prototype.checkmouse = function() {
         this.layer_array[1].drawobj_array.length = 0;
 //        d_board.add_drawobj("text","yaaaaay",mouse_x,mouse_y,0,0,"black",null,1);
         n = 0;       
- d_board.add_drawobj("text","framerate","FPS: " + fps,900, window.pageYOffset + window.innerHeight - 20,0,0,"black",null,1);
- 
+ d_board.add_drawobj("text","framerate","FPS: " + fps,700, window.pageYOffset + window.innerHeight - 20,0,0,"black",null,1);
+
+
 
 for (n = 0; n < this.layer_array.length; n++) {
 
@@ -166,6 +171,8 @@ this.context.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
 
                         board_x = 900; board_y = window.pageYOffset || document.documentElement.scrollTop + 20; 
 
+
+
                         if (obj.objdesc == "server_ram" || obj.objdesc == "server_cpu") { 
                              d_board.add_drawobj("rect","info","",board_x,board_y,500,500,"white",null,1); 
                              d_board.add_drawobj("text","info",obj.obj.name + ": ", board_x + 10,board_y + 15,0,0,"black",null,1);
@@ -180,25 +187,30 @@ this.context.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
                                 d_board.add_drawobj("text","info","VM ID: " + obj2.UID + "STATE: " + obj2.STATE + "CORES: " + obj2.NCPU + "RAM: " + obj2.RAM,board_x + 10,board_y + 150 + 15 * m,0,0,"black",null,1);
                             }
                         }    
+                      
+
                         if (obj.objdesc == "ram" || obj.objdesc == "cpu") {
                         
-                         info_x = mouse_x + 10;
-                         d_board.add_drawobj("rect","info","",info_x,mouse_y,300,200,"orange",null,1); 
-                         d_board.add_drawobj("text","info","Host: " + obj.obj.HOST,info_x + 5,mouse_y +15,0,0,"white",null,1);
-                         d_board.add_drawobj("text","info","VM Name: " + obj.obj.NAME,info_x + 5,mouse_y +25,0,0,"white",null,1);
-                         d_board.add_drawobj("text","info","VM ID:" + obj.obj.UID,info_x + 5,mouse_y + 35,0,0,"white",null,1);
-                         d_board.add_drawobj("text","info","POWER STATE: " + obj.obj.STATE,info_x + 5,mouse_y + 45,0,0,"white",null,1);
-                         d_board.add_drawobj("text","info","IMAGE: " + obj.obj.IMAGE,info_x + 5,mouse_y + 55,0,0,"white",null,1);
+                        d_board.add_drawobj("rect_nofill","highlight","",obj.x,obj.y,obj.w,obj.h,"white",null,1);                          
+
+                         if (info_lastobj != obj.obj) { 
+
+                            info_lastobj = obj.obj;
+
+                            info_x = mouse_x + 10;
+                            document.getElementById("info").innerHTML = "Host: " + obj.obj.HOST + "<br>" + "<br>" +
+                            "VM Name: " + obj.obj.NAME + "<br>" +
+                            "VM ID:" + obj.obj.UID + "<br>" + 
+                            "POWER STATE: " + obj.obj.STATE + "<br>" +  
+                            "IMAGE: " + obj.obj.IMAGE + "<br>" +
+                            "USER_ID: " + obj.obj.USER_ID + "<br>" +
+                            "TENANT_ID: " + obj.obj.TENANT_ID + "<br>" +               
+                            "CPUs: " + obj.obj.NCPU + "<br>" +
+                            "RAM: " + obj.obj.RAM + "<br>" +                  
+                            "IP4: " + obj.obj.IP4 + "<br>" +
+                            "KEY: " + obj.obj.KEY_NAME + "<br>"; 
                     
-                         d_board.add_drawobj("text","info","USER_ID: " + obj.obj.USER_ID,info_x + 5,mouse_y + 75,0,0,"white",null,1);
-                         d_board.add_drawobj("text","info","TENANT_ID: " + obj.obj.TENANT_ID,info_x + 5,mouse_y + 85,0,0,"white",null,1);
-                    
-                         d_board.add_drawobj("text","info","CPUs: " + obj.obj.NCPU,info_x + 5,mouse_y + 95,0,0,"white",null,1);
-                         d_board.add_drawobj("text","info","RAM: " + obj.obj.RAM,info_x + 5,mouse_y + 105,0,0,"white",null,1);
-                    
-                         d_board.add_drawobj("text","info","IP4: " + obj.obj.IP4,info_x + 5,mouse_y + 115,0,0,"white",null,1);
-                         d_board.add_drawobj("text","info","KEY: " + obj.obj.KEY_NAME,info_x + 5,mouse_y + 125,0,0,"white",null,1);
-                    
+                         }
                         }
 
                 }

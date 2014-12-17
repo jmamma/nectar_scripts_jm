@@ -5,8 +5,9 @@
         <LINK href="stylesheet.css" rel="stylesheet" type="text/css">
         </head>
         <body>
+        <div id="info">halo</div>
+
         <canvas onmousemove="updateMouse(event)" id="myCanvas" width="880" height="10000"></canvas>
-        <div id="info"></div>
 
         <script src="classes.js"></script>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
@@ -55,7 +56,7 @@ generateCloud();
         }
 
         loadCloud();
- 
+        var info_lastobj = null; 
 
         function generateCloud() {
         countx = 0;

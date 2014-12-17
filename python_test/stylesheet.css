@@ -1,0 +1,14 @@
+#info {
+    font-family: Consolas, monaco, monospace;
+    font-size: 10px;
+    position: fixed;
+    width: 500px;
+    height: 700px;
+    top: 20px;
+    left: 900px;
+}
+
+#infobox {
+    width: 180;
+    height: 690;
+}
