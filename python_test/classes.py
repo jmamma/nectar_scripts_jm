@@ -3,7 +3,7 @@ class Instance:
     RAM = 0
     STATE = ""
     HOST = ""
-    def __init__(self,NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME):
+    def __init__(self,NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME, INSTANCE_NAME):
         self.NCPU = NCPU
         self.RAM = RAM
         self.STATE = STATE
@@ -18,6 +18,7 @@ class Instance:
         self.IMAGE = IMAGE
         self.SECURITY = SECURITY
         self.KEY_NAME = KEY_NAME
+        self.INSTANCE_NAME = INSTANCE_NAME
 
 class Server:
     processors = 0
@@ -30,8 +31,8 @@ class Server:
             self.processors = processors
             self.memory = memory
             self.host = host
-    def add_vm(self,NCPU, RAM, STATE, HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME):
-            x = Instance(NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME)
+    def add_vm(self,NCPU, RAM, STATE, HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME, INSTANCE_NAME):
+            x = Instance(NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME, INSTANCE_NAME)
             self.vm_array.append(x)
 
 class Aggregate:

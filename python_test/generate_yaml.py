@@ -48,6 +48,8 @@ def main():
     print nc.flavors.list()
     flavors = nc.flavors.list()
 
+    print nc.aggregates.list();
+
     print flav[0][0] 
         # print nc.flavors.get(flav).get_keys
 #    print nc.hosts.get(np-rcc9')   
@@ -75,6 +77,7 @@ def main():
             STATE = str(getattr(instance, 'OS-EXT-STS:vm_state'))
             NAME = str(getattr(instance, 'name'))
             UID = str(getattr(instance, 'id'))
+            INSTANCE_NAME = str(getattr(instance, 'OS-EXT-SRV-ATTR:instance_name'))
             CREATED = str(getattr(instance, 'created'))
         
             IP4 = str(getattr(instance, 'accessIPv4'))
@@ -83,15 +86,12 @@ def main():
             for vol in getattr(instance, 'os-extended-volumes:volumes_attached'):
                 volstr = volstr + " " +  str(vol['id'])
             VOLUME = volstr
-
+            
             TENANT_ID = str(getattr(instance, 'tenant_id'))
             USER_ID = str(getattr(instance, 'user_id'))
-            print type(getattr(instance, 'image'))
-            #getattr(getattr(instance, 'image'), 'id')
-            temp = getattr(instance, 'image')
-            #IMAGE = "null"
-          #  IMAGE = str(temp['id']);
-            IMAGE = ""
+            img = getattr(instance, 'image')
+            if img: 
+                IMAGE = str(img['id'])
             SECURITY = "null"
             #SECURITY = getattr(instance, 'security_groups')
             KEY = str(getattr(instance, 'key_name'))
@@ -100,7 +100,7 @@ def main():
             print STATE
             
             if int(RAM) > 0:
-                node.add_vm(NCPU, RAM, STATE, node.host, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY)
+                node.add_vm(NCPU, RAM, STATE, node.host, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY, INSTANCE_NAME)
         c = c + 1
    
         l = 0

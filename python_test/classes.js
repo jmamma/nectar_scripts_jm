@@ -20,18 +20,19 @@ function Server(name, processors, memory, blockswide) {
     this.array = [blockswide][Math.ceil(processors / blockswide)];
 }
 
-Server.prototype.add_vm = function(NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME) {
-    x = new Instance(NCPU,RAM,STATE,HOST,NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME); 
+Server.prototype.add_vm = function(NCPU,RAM,STATE,HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME, INSTANCE_NAME) {
+    x = new Instance(NCPU,RAM,STATE,HOST,NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME, INSTANCE_NAME); 
     this.vm_array.push(x);
 };
 
-function Instance(NCPU, RAM, STATE, HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME) {
+function Instance(NCPU, RAM, STATE, HOST, NAME, UID, CREATED, IP4, VOLUME, TENANT_ID, USER_ID, IMAGE, SECURITY, KEY_NAME, INSTANCE_NAME) {
     this.NCPU = NCPU;
     this.RAM = RAM;
     this.STATE = STATE;
     this.HOST = HOST;
     this.NAME = NAME;
     this.UID = UID;
+    this.INSTANCE_NAME = INSTANCE_NAME;
     this.CREATED = CREATED;
     this.IP4 = IP4;
     this.VOLUME = VOLUME;
@@ -47,10 +48,10 @@ function DrawObj(type, objdesc, text, x, y, w, h, fillstyle, obj) {
     this.type = type;
     this.objdesc = objdesc;
     this.text = text;
-    this.x = x;
-    this.y = y;
-    this.w = w;
-    this.h = h;
+    this.x = Math.floor(x);
+    this.y = Math.floor(y);
+    this.w = Math.floor(w);
+    this.h = Math.floor(h);
     this.fillstyle = fillstyle;
     this.obj = obj;
 
@@ -133,7 +134,7 @@ DrawingBoard.prototype.checkmouse = function() {
         this.layer_array[1].drawobj_array.length = 0;
 //        d_board.add_drawobj("text","yaaaaay",mouse_x,mouse_y,0,0,"black",null,1);
         n = 0;       
- d_board.add_drawobj("text","framerate","FPS: " + fps,700, window.pageYOffset + window.innerHeight - 20,0,0,"black",null,1);
+ d_board.add_drawobj("text","framerate","FPS: " + fps,700, window.pageYOffset + window.innerHeight - 100,0,0,"black",null,1);
 
 
 
@@ -146,7 +147,7 @@ for (n = 0; n < this.layer_array.length; n++) {
 
 
        if (n == 0) {
-this.context.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
+            this.context.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
 
        }
 
@@ -158,10 +159,12 @@ this.context.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
         obj = this.layer_array[n].drawobj_array[i]; 
 
             //Don't process objects unless their y position is greater than the top of visible page portion
-            if (obj.y + obj.h > top) { 
+            if (obj.y > top - 200) { 
 
-               if (obj.y > top + bottom + 180 || obj.y + obj.h < top) {
-                    exit = 1; 
+           // If we've left the visible portion of the screen, exit the loop   
+                if (obj.y > top + bottom + 180 || obj.y + obj.h < top - 200) {
+                  //  exit = 1; 
+                        r = 4;
                }       
 
                else {
@@ -174,6 +177,7 @@ this.context.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
 
 
                         if (obj.objdesc == "server_ram" || obj.objdesc == "server_cpu") { 
+                             
                              d_board.add_drawobj("rect","info","",board_x,board_y,500,500,"white",null,1); 
                              d_board.add_drawobj("text","info",obj.obj.name + ": ", board_x + 10,board_y + 15,0,0,"black",null,1);
                              d_board.add_drawobj("text","info","Memory Total: " + obj.obj.memory, board_x + 10,board_y + 30,0,0,"black",null,1);
@@ -201,7 +205,8 @@ this.context.clearRect ( 0 , 0 , this.canvas.width, this.canvas.height );
                             document.getElementById("info").innerHTML = "Host: " + obj.obj.HOST + "<br>" + "<br>" +
                             "VM Name: " + obj.obj.NAME + "<br>" +
                             "VM ID:" + obj.obj.UID + "<br>" + 
-                            "POWER STATE: " + obj.obj.STATE + "<br>" +  
+                            "INSTANCE_NAME:" + obj.obj.INSTANCE_NAME + "<br>" +
+                            "VM STATE: " + obj.obj.STATE + "<br>" +  
                             "IMAGE: " + obj.obj.IMAGE + "<br>" +
                             "USER_ID: " + obj.obj.USER_ID + "<br>" +
                             "TENANT_ID: " + obj.obj.TENANT_ID + "<br>" +               
