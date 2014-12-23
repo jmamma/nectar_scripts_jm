@@ -42,4 +42,7 @@ class Aggregate:
             x = Server(host,processors,memory)
             self.server_array.append(x)
 
+class Cloud:
+    def __init__(self, array):
+        self.aggregates = array
 

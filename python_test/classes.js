@@ -1,3 +1,7 @@
+function Cloud() {
+    this.aggregates = [];
+}
+
 function Aggregate() {
     this.loaded = 0;
     this.server_array = [];
@@ -123,6 +127,14 @@ function in_area(x1, y1, x, y, w, h) {
     return Boolean(a && b);
 }
 
+DrawingBoard.prototype.clearall = function() {
+
+        for (n = 0; n < this.layer_array.length; n++) {
+
+            this.layer_array[n].drawobj_array.length = 0; 
+                
+        } 
+}
 
 DrawingBoard.prototype.add_drawobj = function(type, objdesc, text, x, y, h, w, fillstyle, object, layer) {
     y = new DrawObj(type, objdesc, text, x, y, h, w, fillstyle, object);
@@ -178,13 +190,13 @@ for (n = 0; n < this.layer_array.length; n++) {
 
                         if (obj.objdesc == "server_ram" || obj.objdesc == "server_cpu") { 
                              
-                             d_board.add_drawobj("rect","info","",board_x,board_y,500,500,"white",null,1); 
-                             d_board.add_drawobj("text","info",obj.obj.name + ": ", board_x + 10,board_y + 15,0,0,"black",null,1);
-                             d_board.add_drawobj("text","info","Memory Total: " + obj.obj.memory, board_x + 10,board_y + 30,0,0,"black",null,1);
-                             d_board.add_drawobj("text","info","Memory Usage: " + obj.obj.totalramusage, board_x + 10,board_y + 45,0,0,"black",null,1);
-                             d_board.add_drawobj("text","info","Memory Free: " + (obj.obj.memory - obj.obj.totalramusage), board_x + 10,board_y + 60,0,0,"black",null,1);
-                             d_board.add_drawobj("text","info","Cores Total: " + (obj.obj.processors), board_x + 10,board_y + 75,0,0,"black",null,1);
-                             d_board.add_drawobj("text","info","Cores Free: " + (obj.obj.processors - obj.obj.totalcpuusage), board_x + 10,board_y + 90,0,0,"black",null,1);
+         
+                            document.getElementById("info2").innerHTML = "Host: " + obj.obj.name + 
+                            "Memory Total: " + obj.obj.memory + "<br>" +
+                            "Memory Usage: " + obj.obj.totalramusage + "<br>" +
+                            "Memory Free: " + (obj.obj.memory - obj.obj.totalramusage) + "<br>" +
+                            "Cores Total: " + obj.obj.processors + "<br>" +
+                            "Cores Free: " + (obj.obj.processors - obj.obj.totalcpuusage);
 
                             for (m = 0; m < obj.obj.vm_array.length; m++) {   
                                 obj2 = obj.obj.vm_array[m];

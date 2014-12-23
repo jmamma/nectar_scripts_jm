@@ -3,15 +3,25 @@
         <head>
         <title>Visual Cloud</title>
         <LINK href="stylesheet.css" rel="stylesheet" type="text/css">
-        </head>
-        <body>
-        <div id="canvas">
-        <canvas onmousemove="updateMouse(event)" id="myCanvas" width="880" height="10000"></canvas>
-        </div>
-        
-        <div id="info">halo</div>
         <script src="classes.js"></script>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
         <script src="scripts.js"> </script>
+        </head>
+        <body onload="load();">
+        <div id="menu">
+            <form name="menu">
+                <select id="aggregates">
+                </select>
+                <br><br>
+            </form>
+            <button type="button" onclick='loadCloud(document.getElementById("aggregates").value)'>Click</button>
+
+        </div>
+        <div id="canvas">
+        <canvas id="myCanvas" onmousemove="updateMouse(event)" width="880" height="10000"></canvas>
+        </div>
+        
+        <div id="info">halo</div>
+        <div id="info2">loading..</div>
         </body>
         </html>

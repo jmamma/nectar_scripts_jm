@@ -3,10 +3,28 @@
     font-size: 10px;
     position: fixed;
     width: 500px;
-    height: 700px;
-    top: 20px;
+    height: 400px;
+    top: 100px;
     left: 900px;
 }
+#info2 {
+    font-family: Consolas, monaco, monospace;
+    font-size: 10px;
+    position: fixed;
+    width: 500px;
+    height: 400px;
+    top: 500px;
+    left: 900px;
+}
+
+
+#canvas {
+    position: absolute;
+    left: 0px;
+    top: 100px;
+    width: 880px;
+}
+
 
 #infobox {
     width: 180;
