@@ -8,13 +8,13 @@ from private import *
 import jsonpickle    
 from classes import Instance, Server, Aggregate
 from novaclient.v1_1 import client as nova_client
-from classes import Instance, Server, Aggregate 
+from classes import Instance, Server, Aggregate, Flavor 
 
-flav = [ [4096, 1], [8192, 2], [32768, 8], [65536, 16], [16384, 4] ]
+#flav = [ [4096, 1], [8192, 2], [32768, 8], [65536, 16], [16384, 4] ]
 
 CORES = 24
-MEMORY = 131905 - 30507
-        
+MEMORY = 128812 - 30507
+
 def get_nova_client():
     with open(openrc_admin,'r') as f:
         for line in f:
@@ -52,15 +52,28 @@ def get_nova_client():
 nc = get_nova_client()
 
 #aggregate = cgi.getfirst('aggregate')
-#aggregate = "nectar!melbourne!qh2@netapp"
 aggregate_list = nc.aggregates.list();
 
 aggregates = [ ]
+
+flavors = nc.flavors.list();
+
+flav = [ ]
+
+for f in flavors:
+    newflav = Flavor(getattr(f,'ram'),getattr(f,'vcpus'),getattr(f,'name'),getattr(f,'id'))
+    flav.append(newflav)
+
 print "Content-type: application/json"
 print
 
 form = cgi.FieldStorage()
 aggregate = form.getvalue('aggregate')
+
+
+if not aggregate: 
+    aggregate = "nectar!melbourne!qh2@netapp"
+
 
 for aggregate_c in aggregate_list:
         #    print aggregate_c.name 
@@ -79,15 +92,23 @@ while c < len(aggreg_obj.server_array):
     node = aggreg_obj.server_array[c]
     host = node.host
 
+    host_name_full = aggregate.split('@')[0] + "@" + node.host
+    host_details = vars(nc.hosts.get(host_name_full)[0])
+    node.processors = host_details['cpu']
+    node.memory = host_details['memory_mb']
+
     vms_on_host = nc.servers.list(search_opts={'all_tenants': 1, 'host': node.host}) 
 
     d = 1 
 
     for instance in vms_on_host:
         f = getattr(instance, 'flavor')
-        n = int(str(f['id']))
-        NCPU = flav[n][1]
-        RAM = flav[n][0] 
+        for f_search in flav:
+            if f_search.id == str(f['id']):
+                flav_match = f_search
+        
+        NCPU = flav_match.vcpus
+        RAM = flav_match.ram 
         STATE = str(getattr(instance, 'OS-EXT-STS:vm_state'))
         NAME = str(getattr(instance, 'name'))
         UID = str(getattr(instance, 'id'))
