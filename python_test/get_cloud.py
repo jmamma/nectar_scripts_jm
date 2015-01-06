@@ -93,10 +93,26 @@ while c < len(aggreg_obj.server_array):
     host = node.host
 
     host_name_full = aggregate.split('@')[0] + "@" + node.host
-    host_details = vars(nc.hosts.get(host_name_full)[0])
-    node.processors = host_details['cpu']
-    node.memory = host_details['memory_mb']
 
+#Used total
+    
+    host_details = nc.hosts.get(host_name_full)
+    host_details_1 = vars(host_details[1]) 
+    host_details_0 = vars(host_details[0])
+    host_details_4 = vars(host_details[4])
+    host_details_3 = vars(host_details[3])
+    host_details_2 = vars(host_details[2])
+
+    memory_os_reserved = host_details_1['memory_mb'] - host_details_2['memory_mb']  
+
+#    print host_details_0
+#    print host_details_1
+#    print host_details_2
+#    print host_details_3
+#    print host_details_4
+
+    node.processors = host_details_0['cpu']
+    node.memory = host_details_0['memory_mb'] - memory_os_reserved
     vms_on_host = nc.servers.list(search_opts={'all_tenants': 1, 'host': node.host}) 
 
     d = 1 
