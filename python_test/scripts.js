@@ -1,4 +1,72 @@
 
+$( document ).ajaxStart(function() {
+        $( "#loading" ).show();
+});
+
+$( document ).ajaxStop(function() {
+        $( "#loading" ).hide();
+});
+
+
+
+function bugLoop() {
+        bugcontext.clearRect ( 0 , 0 , bugcanvas.width, bugcanvas.height );
+        chase.x = 50 * Math.cos(chase.angle) + 100;
+        chase.y = 50 * Math.sin(chase.angle) + 100;
+        chase.angle = chase.angle + .01;
+    
+    for (var n = 0; n < bugs.length; n++) {
+        var bug = bugs[n];
+
+
+        opposite = bug.y - chase.y; 
+        adjacent = bug.x - chase.x;
+
+        theta = Math.abs(Math.atan(opposite/adjacent));
+        
+        mag = Math.sqrt(Math.pow(opposite,2) + Math.pow(adjacent,2));
+
+
+        bug.vx = Math.abs(bug.v * Math.sin(theta));
+        bug.vy = Math.abs(bug.v * Math.cos(theta)); 
+        if (opposite > 0) {
+        bug.x = bug.x + bug.vx;
+        } 
+        else {
+        bug.x = bug.x - bug.vx;
+        }       
+        if (adjacent > 0) {
+        bug.y = bug.y - bug.vx;    
+        }
+        else {
+        bug.y = bug.y + bug.vy;
+        }
+        
+        bugcontext.strokeRect(bug.x, bug.y, 1,2); 
+
+    }
+       // bugcontext.strokeRect(chase.x, chase.y, 10,10); 
+    
+requestAnimationFrame(bugLoop);
+
+}
+
+
+
+
+function bug_load() {
+    chase = { x:0, y:0, angle:0 }
+    bugcanvas = document.getElementById('bugcanvas');
+    bugcontext = bugcanvas.getContext('2d');        
+    bugs = [];
+    for (var n = 0; n < 400; n++) {
+    var bug = { x:Math.floor(Math.random() * 450), y:Math.floor(Math.random() * 450), vx:Math.random() * 1, vy:Math.random(), v:1 };
+    bugs.push(bug);
+    }
+        requestAnimationFrame(bugLoop);
+    
+}
+
 function load() {
 
 //Global variables in javascript have no var definition, even when assigned within functions.
@@ -22,7 +90,7 @@ context = d_board.context;
 d_board.add_layer();
 d_board.add_layer();
 
-
+//bug_load();
 
 loadAggregates();
 loadCloud('nectar!melbourne!qh2@netapp');
@@ -125,7 +193,7 @@ function generateCloud() {
      d_board.add_drawobj("rect","server_cpu", "", offset_x + shift_x,offset_y + shift_y + length,blockswide * blocksize, -1 * blocksize * 24 / blockswide, "lime", cur_aggregate.server_array[key],0);
      context.stroke();
 
-     for (y = 0; y < (24 + overextend) / blockswide; y++) {
+     for (y = 0; y < (cur_aggregate.server_array[key].processsors) / blockswide; y++) {
          for (x = 0; x < blockswide; x++) {
 
  //    d_board.add_drawobj("rect", "cpu", "",shift_x + offset_x + x * blocksize,shift_y + offset_y + y * blocksize, blocksize, blocksize, "null", cur_aggregate.server_array[key],0);

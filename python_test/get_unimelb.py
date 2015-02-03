@@ -3,14 +3,14 @@
 import os
 import shutil
 import yaml
-from classes import Instance, Server, Aggregate 
+from classes import Instance, Server, Aggregate, Flavor 
 from novaclient.v1_1 import client as nova_client
 import subprocess
 #DataStructure containing cloud flavours.
 
 #Ascertain these values from NOVA or database at a later date...
 
-flav = [ [4096, 1], [8192, 2], [32768, 8], [65536, 16], [16384, 4] ]
+#flav = [ [4096, 1], [8192, 2], [32768, 8], [65536, 16], [16384, 4] ]
 CORES = 24
 MEMORY = 131905
 
@@ -49,14 +49,22 @@ def main():
     array.sort()
     np_aggregate = Aggregate(array, CORES, MEMORY)
 
-    outputf = open('output.yaml', 'w')
-
     nc = get_nova_client()
 
-    print nc.flavors.list()
-    flavors = nc.flavors.list()
+    flavors = nc.flavors.list();
 
-    print flav[0][0] 
+    flav = [ ]
+
+    for f in flavors:
+        newflav = Flavor(getattr(f,'ram'),getattr(f,'vcpus'),getattr(f,'name'),getattr(f,'id'))
+        flav.append(newflav)
+
+    
+    
+    outputf = open('output.yaml', 'w')
+
+
+
         # print nc.flavors.get(flav).get_keys
 #    print nc.hosts.get(np-rcc9')   
 #    for host in hosts:
@@ -76,9 +84,14 @@ def main():
 
         for instance in vms_on_host:
             f = getattr(instance, 'flavor')
+            
+            for f_search in flav:
+                if f_search.id == str(f['id']):
+                    flav_match = f_search
+            
+            NCPU = flav_match.vcpus
+            RAM = flav_match.ram         
             n = int(str(f['id']))
-            NCPU = flav[n][1]
-            RAM = flav[n][0] 
             STATE = str(getattr(instance, 'OS-EXT-STS:vm_state'))
             NAME = str(getattr(instance, 'name'))
             UID = str(getattr(instance, 'id'))
