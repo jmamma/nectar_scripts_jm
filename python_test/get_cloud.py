@@ -9,6 +9,8 @@ import jsonpickle
 from classes import Instance, Server, Aggregate
 from novaclient.v1_1 import client as nova_client
 from classes import Instance, Server, Aggregate, Flavor 
+import datetime
+
 
 #flav = [ [4096, 1], [8192, 2], [32768, 8], [65536, 16], [16384, 4] ]
 
@@ -48,15 +50,14 @@ def get_nova_client():
 
 #stream = file('/var/www/html/output.yaml', 'r')
 
-
 nc = get_nova_client()
 
 #aggregate = cgi.getfirst('aggregate')
-aggregate_list = nc.aggregates.list();
+aggregate_list = nc.aggregates.list()
 
 aggregates = [ ]
 
-flavors = nc.flavors.list();
+flavors = nc.flavors.list()
 
 flav = [ ]
 
@@ -72,7 +73,7 @@ aggregate = form.getvalue('aggregate')
 
 
 if not aggregate: 
-    aggregate = "nectar!melbourne!qh2@netapp"
+    aggregate = "nectar!monash!monash-02@production"
 
 
 for aggregate_c in aggregate_list:
@@ -82,9 +83,40 @@ for aggregate_c in aggregate_list:
         hosts = getattr(nc.aggregates.get_details(aggregate_c),'hosts')
 
 
+#  print np_aggregatr!melbourne!qh2@4array
+
+
+# Look for most up-to-date data file and return this as JSON
+#
+
+directory = data_dir + '/' + aggregate
+
+#Sort the files in the directory by date.
+#Select the most current data file
+
+if not os.path.exists(directory):
+    os.makedirs(directory)
+
+os.chdir(directory)
+files = filter(os.path.isfile, os.listdir(directory))
+files = [os.path.join(directory, f) for f in files] # add path to each file
+files.sort(key=os.path.getmtime, reverse=True)
+
+if len(files) > 0:
+    if os.path.exists(files[0]):
+        stream= open(files[0])
+        aggreg_obj = yaml.load(stream)
+        print jsonpickle.encode(aggreg_obj, unpicklable=False)
+        
+
+
+
+
+# Collect Data and generate new data file
+
+
 aggreg_obj = Aggregate(hosts, CORES, MEMORY) 
 
-#  print np_aggregatr!melbourne!qh2@4array
 
 c = 1
 
@@ -99,17 +131,10 @@ while c < len(aggreg_obj.server_array):
     host_details = nc.hosts.get(host_name_full)
     host_details_1 = vars(host_details[1]) 
     host_details_0 = vars(host_details[0])
-    host_details_4 = vars(host_details[4])
-    host_details_3 = vars(host_details[3])
     host_details_2 = vars(host_details[2])
 
     memory_os_reserved = host_details_1['memory_mb'] - host_details_2['memory_mb']  
 
-#    print host_details_0
-#    print host_details_1
-#    print host_details_2
-#    print host_details_3
-#    print host_details_4
 
     node.processors = host_details_0['cpu']
     node.memory = host_details_0['memory_mb'] - memory_os_reserved
@@ -157,7 +182,12 @@ while c < len(aggreg_obj.server_array):
 
  #   print jsonpickle.encode(np_aggregate, unpicklable=False)
 
-print jsonpickle.encode(aggreg_obj, unpicklable=False)
+#Write collected data as yaml file
+
+now = datetime.datetime.now()
+print data_dir + '/' + aggregate + now.isoformat() +  '.yaml', 
+outputf = open(data_dir + '/' + aggregate + '/' + now.isoformat() +  '.yaml', 'w')
+outputf.write(yaml.dump(aggreg_obj))
 
 #self.response.headers['Content-Type'] = "application/json"
 #self.response.out.write(jsonpickle.encode(np_aggregate, unpicklable=False)
