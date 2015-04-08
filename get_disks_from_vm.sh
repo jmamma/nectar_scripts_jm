@@ -74,9 +74,9 @@ spinner="-/|\\"
 #Hostname/Ip of tunnel. Leave blank if you do not wish to tunnel into the node.
 
 tunnel="suse" 
-user="root"
+user="jmammarella"
 port="5555"
-identity_file="~/.ssh/nectar_jm"
+identity_file="/home/ubuntu/.ssh/nectar_jm"
 
 #Variables for location of OpenStack credentials.
 
@@ -112,7 +112,7 @@ getdisks() {
     #If the sshtunnel variable is set, then attempt to the node through the tunnel
     if [ ! -z $tunnel ]; then
        
-        ssh_tunnel $tunnel $node $user $port 
+        ssh_tunnel $tunnel $node $user $port $identity_file 
         
         if [ "$?" -gt "0" ]; then
             cleanUp 5 "SSH Tunnel Failed"
@@ -219,6 +219,9 @@ mountdisks() {
  
     if $(sudo mount /dev/nbd0p1 $mount_dir_1); then
         echo -e "Mount Successful: $mount_dir_1\n"
+    elif $(sudo mount /dev/nbd0 $mount_dir_1); then
+        echo -e "Mount Successful: $mount_dir_1\n"
+
     else
         cleanUp 1 "mount1 failed"
     fi
@@ -351,6 +354,7 @@ swiftupload() {
     sudo touch $2.swift.log
     sudo chmod 777 $2.swift.log 
 
+    echo -e "swift -v upload $1 $2 -S $3 > $2.swift.log\n"
     (swift -v upload $1 $2 -S $3 > $2.swift.log) & pid_tmp1=$!
 
 
@@ -373,7 +377,7 @@ swiftupload() {
     #Draw progress bar
       
         echo -ne "\r$(echo -n $spinner | head -c 1) "
-        echo -n "Segmnets: $so_far/$num_seg - SizeOf $(du -h $2 | cut -f1 -d$'\t') "      
+        echo -n "Segments: $so_far/$num_seg - SizeOf $(du -h $2 | cut -f1 -d$'\t') "      
 
     done
 }
@@ -382,11 +386,17 @@ swift_send() {
     echo -e "\n${Green}Stage 3: SWIFT Upload ${NoColor}"
     echo -e "\nUploading mount_dir_0/root.tar.gz to container $id " 
 
-    swiftupload $id $mount_dir_0/root.tar.gz 2147483648
+    if [ ! $(swift list $id | grep root) ]; then
+
+    swiftupload $id $mount_dir_0/root.tar.gz 1147483648
+    fi
+
 
     echo -e "\nUploading mount_dir_0/ephemeral.tar.gz to container $id " 
-
-    swiftupload $id $mount_dir_0/ephemeral.tar.gz 2147483648
+    
+    if [ ! $(swift list $id | grep ephemeral) ]; then
+    swiftupload $id $mount_dir_0/ephemeral.tar.gz 1147483648
+    fi
 
 }
 
