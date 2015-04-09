@@ -21,7 +21,7 @@ cat $0 | head -n 91 | tail -n 19
 }
 
 tunnel=/dev/null
-
+tunnelon=/dev/null
 
 if [ $# -eq 0 ]; then
     display_help
@@ -35,9 +35,9 @@ while [ $# -gt 0 ]; do
             display_help 
             exit
             ;;
-#        -t)
-#            shift
-#            tunnel=$1
+        -t)
+            shift
+            tunnelon=1
 #            user=$2
 #            port=$3
 #            shift 3 
@@ -110,7 +110,7 @@ cd $mount_dir_0
 getdisks() {
 
     #If the sshtunnel variable is set, then attempt to the node through the tunnel
-    if [ ! -z $tunnel ]; then
+    if [ ! -z $tunnelon ]; then
        
         ssh_tunnel $tunnel $node $user $port $identity_file 
         
@@ -150,10 +150,17 @@ getdisks() {
 
         if [ ! -e $mount_dir_0/disk ]; then 
                 sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/ 
+                if [ "$?" -eq "0" ]; then
+                    cleanUp 5 'Rsync Failed: sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/'
+                fi;
         fi
        
         if [ ! -e $mount_dir_0/disk.local ]; then
                 sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/
+                if [ "$?" -eq "0" ]; then
+                    cleanUp 5 'Rsync Failed: sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/'
+                fi;
+        
         fi
         
     else
@@ -162,20 +169,30 @@ getdisks() {
 
         if [ ! -e $mount_dir_0/$id/disk ]; then 
                 sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/
+                if [ "$?" -eq "0" ]; then
+                    cleanUp 5 'Rsync Failed: sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/'
+                fi;
+
         fi
         if [ ! -e $mount_dir_0/$id/disk.local ]; then
                 sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk.local $mount_dir_0/
+                if [ "$?" -eq "0" ]; then
+                    cleanUp 5 'Rsync Failed: sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/'
+                fi;
+
+                    
         fi
     fi
     
     echo -e "\n${Green}Stage 0: Get disk data from VM $id${NoColor}\n"
     
     if [ ! -e $mount_dir_0/disk ]; then
-        echo -e "${Orange}File does not exist.. ssh $mount_dir_0/disk${NoColor}"
+        cleanUp 5 "File does not exist.. ssh $mount_dir_0/disk${NoColor}"
+        
     fi
 
     if [ ! -e $mount_dir_0/disk.local ]; then
-        echo -e "${Orange}File does not exist.. ssh $mount_dir_0/disk.local${NoColor}"
+        cleanup 5 "File does not exist.. ssh $mount_dir_0/disk.local${NoColor}"
     fi
 
 
@@ -423,6 +440,10 @@ cleanUp() {
         echo -e "\n${Red}Error: ${NoColor}" $2
     fi
     
+    #Kill running processes
+    killProcess
+
+    #Unmount drives
     if grep -qs $mount_dir_1 /proc/mounts; then
         sudo umount $mount_dir_1
     fi
@@ -430,8 +451,9 @@ cleanUp() {
     if grep -qs $mount_dir_2 /proc/mounts; then
         sudo umount $mount_dir_2
     fi
-    
-    killProcess
+    #Disconnect qemu
+    sudo qemu-nbd -d /dev/nbd0
+    sudo qemu-nbd -d /dev/nbd1
     exit 1
 }
 
