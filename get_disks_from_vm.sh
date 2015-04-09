@@ -21,7 +21,7 @@ cat $0 | head -n 91 | tail -n 19
 }
 
 tunnel=/dev/null
-
+tunnelon=/dev/null
 
 if [ $# -eq 0 ]; then
     display_help
@@ -35,9 +35,9 @@ while [ $# -gt 0 ]; do
             display_help 
             exit
             ;;
-#        -t)
-#            shift
-#            tunnel=$1
+        -t)
+            shift
+            tunnelon=1
 #            user=$2
 #            port=$3
 #            shift 3 
@@ -74,9 +74,9 @@ spinner="-/|\\"
 #Hostname/Ip of tunnel. Leave blank if you do not wish to tunnel into the node.
 
 tunnel="suse" 
-user="root"
+user="jmammarella"
 port="5555"
-identity_file="~/.ssh/nectar_jm"
+identity_file="/home/ubuntu/.ssh/nectar_jm"
 
 #Variables for location of OpenStack credentials.
 
@@ -110,9 +110,9 @@ cd $mount_dir_0
 getdisks() {
 
     #If the sshtunnel variable is set, then attempt to the node through the tunnel
-    if [ ! -z $tunnel ]; then
+    if [ ! -z $tunnelon ]; then
        
-        ssh_tunnel $tunnel $node $user $port 
+        ssh_tunnel $tunnel $node $user $port $identity_file 
         
         if [ "$?" -gt "0" ]; then
             cleanUp 5 "SSH Tunnel Failed"
@@ -150,10 +150,17 @@ getdisks() {
 
         if [ ! -e $mount_dir_0/disk ]; then 
                 sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/ 
+                if [ "$?" -eq "0" ]; then
+                    cleanUp 5 'Rsync Failed: sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/'
+                fi;
         fi
        
         if [ ! -e $mount_dir_0/disk.local ]; then
                 sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/
+                if [ "$?" -eq "0" ]; then
+                    cleanUp 5 'Rsync Failed: sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/'
+                fi;
+        
         fi
         
     else
@@ -162,20 +169,30 @@ getdisks() {
 
         if [ ! -e $mount_dir_0/$id/disk ]; then 
                 sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/
+                if [ "$?" -eq "0" ]; then
+                    cleanUp 5 'Rsync Failed: sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/'
+                fi;
+
         fi
         if [ ! -e $mount_dir_0/$id/disk.local ]; then
                 sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk.local $mount_dir_0/
+                if [ "$?" -eq "0" ]; then
+                    cleanUp 5 'Rsync Failed: sudo rsync -Pvz -e "ssh -i $identity_file" $user@$node:$disk_image_dir/$id/disk $mount_dir_0/'
+                fi;
+
+                    
         fi
     fi
     
     echo -e "\n${Green}Stage 0: Get disk data from VM $id${NoColor}\n"
     
     if [ ! -e $mount_dir_0/disk ]; then
-        echo -e "${Orange}File does not exist.. ssh $mount_dir_0/disk${NoColor}"
+        cleanUp 5 "File does not exist.. ssh $mount_dir_0/disk${NoColor}"
+        
     fi
 
     if [ ! -e $mount_dir_0/disk.local ]; then
-        echo -e "${Orange}File does not exist.. ssh $mount_dir_0/disk.local${NoColor}"
+        cleanup 5 "File does not exist.. ssh $mount_dir_0/disk.local${NoColor}"
     fi
 
 
@@ -219,6 +236,9 @@ mountdisks() {
  
     if $(sudo mount /dev/nbd0p1 $mount_dir_1); then
         echo -e "Mount Successful: $mount_dir_1\n"
+    elif $(sudo mount /dev/nbd0 $mount_dir_1); then
+        echo -e "Mount Successful: $mount_dir_1\n"
+
     else
         cleanUp 1 "mount1 failed"
     fi
@@ -351,6 +371,7 @@ swiftupload() {
     sudo touch $2.swift.log
     sudo chmod 777 $2.swift.log 
 
+    echo -e "swift -v upload $1 $2 -S $3 > $2.swift.log\n"
     (swift -v upload $1 $2 -S $3 > $2.swift.log) & pid_tmp1=$!
 
 
@@ -373,7 +394,7 @@ swiftupload() {
     #Draw progress bar
       
         echo -ne "\r$(echo -n $spinner | head -c 1) "
-        echo -n "Segmnets: $so_far/$num_seg - SizeOf $(du -h $2 | cut -f1 -d$'\t') "      
+        echo -n "Segments: $so_far/$num_seg - SizeOf $(du -h $2 | cut -f1 -d$'\t') "      
 
     done
 }
@@ -382,11 +403,17 @@ swift_send() {
     echo -e "\n${Green}Stage 3: SWIFT Upload ${NoColor}"
     echo -e "\nUploading mount_dir_0/root.tar.gz to container $id " 
 
-    swiftupload $id $mount_dir_0/root.tar.gz 2147483648
+    if [ ! $(swift list $id | grep root) ]; then
+
+    swiftupload $id $mount_dir_0/root.tar.gz 1147483648
+    fi
+
 
     echo -e "\nUploading mount_dir_0/ephemeral.tar.gz to container $id " 
-
-    swiftupload $id $mount_dir_0/ephemeral.tar.gz 2147483648
+    
+    if [ ! $(swift list $id | grep ephemeral) ]; then
+    swiftupload $id $mount_dir_0/ephemeral.tar.gz 1147483648
+    fi
 
 }
 
@@ -413,6 +440,10 @@ cleanUp() {
         echo -e "\n${Red}Error: ${NoColor}" $2
     fi
     
+    #Kill running processes
+    killProcess
+
+    #Unmount drives
     if grep -qs $mount_dir_1 /proc/mounts; then
         sudo umount $mount_dir_1
     fi
@@ -420,8 +451,9 @@ cleanUp() {
     if grep -qs $mount_dir_2 /proc/mounts; then
         sudo umount $mount_dir_2
     fi
-    
-    killProcess
+    #Disconnect qemu
+    sudo qemu-nbd -d /dev/nbd0
+    sudo qemu-nbd -d /dev/nbd1
     exit 1
 }
 
