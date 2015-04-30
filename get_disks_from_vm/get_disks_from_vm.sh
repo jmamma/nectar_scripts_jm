@@ -5,21 +5,21 @@
 
 trap "cleanUp 2" SIGHUP SIGINT SIGTERM  
 
-
 display_help() {
 
-echo -e "\nUsage: get_disk_from_vm [-u] [-h] <id>\n"
+echo -e "\nUsage: get_disk_from_vm [-u] [-h] [-t] <id>\n"
 #echo "command -t tunnel destination_user tunnel_port -i full_path_to_identity_file VM_ID"
 #echo -e "command -t user@tunnel.com root 5555 -i /home/user/ssh/id_rsa e2xsa3242423411a223423a12 \n"
 echo -e "\t-u Generate TempURL only from Swift."
 echo -e "\t-t Rsync VM disks using an SSH Tunnel" 
+echo -e "\t-s Suspend and Lock the VM with id <id>"
+echo -e "\t-x Clean up mounts only"
 echo -e "\t-h Display this help text.\n"
-
+exit
 }
 
-tunnel=/dev/null
 tunnelon=""
-
+clean=""
 suspended=""
 
 if [ $# -eq 0 ]; then
@@ -63,22 +63,19 @@ while [ $# -gt 0 ]; do
 
 done
 
-#if [ -z "$identity_file" ] || [ ! -e $identity_file ] && [ -z $url ]; then
-#        echo -e "\n You need to specify an identity file with the -i flag"  
-#        exit
-#fi 
-
 #Spinner glyph
 
 spinner="-/|\\"
 
 #CONFIGURATION VARIABLES:
 
+#######################
 #Tunnel Configuration
-
+#######################
 #Hostname/Ip of tunnel. Leave blank if you do not wish to tunnel into the node.
 
 tunnel="suse" 
+
 user="jmammarella"
 port="5555"
 identity_file="/home/jmammarella/.ssh/nectar_jm"
@@ -89,7 +86,6 @@ rc_dir="/home/jmammarella/openstack"
 admin_rc=$rc_dir/openrc-admin.sh
 swift_rc=$rc_dir/nectar_image_quarantine-openrc.sh 
 
-
 #Storage location of data:
 
 mount_dir_0="/media/jmammarella/ADATANH03/compromised_vms/$id"
@@ -99,6 +95,9 @@ mount_dir_2="$mount_dir_0/ephemeral"
 #Instance share on node
 
 disk_image_dir="/var/lib/nova/instances"
+
+#Mount method fues or qemu. Qemu is deprecated.
+
 mount_method="fuse"
 
 
@@ -114,6 +113,8 @@ sudo mkdir -p $mount_dir_0
 
 cd $mount_dir_0
 
+#Function to suspend and lock instance
+
 suspend_lock() {
     echo "Suspending instance $id"
     nova show $id
@@ -128,7 +129,7 @@ getdisks() {
     #If the sshtunnel variable is set, then attempt to the node through the tunnel
     if [ ! -z $tunnelon ]; then
 
-        echo "Creating SSH Tunnel"
+        vecho "Creating SSH Tunnel"
         
         ssh_tunnel $tunnel $node $user $port $identity_file 
         
@@ -143,7 +144,7 @@ getdisks() {
     else
 
         echo "Connecting directly to node"
-        ssh -i $identity_file root@$node exit
+        ssh -i $identity_file -A root@$node exit
        
         if [ $? -eq 0 ]; then 
              echo "Direct connnection to root@$node successful."
@@ -493,11 +494,11 @@ swift_tempurl() {
 cleanUp() {
     
     if [ $1 == 0 ]; then
-        echo -e "\n${Green}Success: Exiting${NoColor}"
+        echo -e "\n${Green}Success: Exiting${NoColor}" | tee -a $logfile
     elif [ $1 == 2 ]; then
-        echo -e "\n${Red}User termination.${NoColor}"
+        echo -e "\n${Red}User termination.${NoColor}" | tee -a $logfile
     else
-        echo -e "\n${Red}Error: ${NoColor}" $2
+        echo -e "\n${Red}Error: ${NoColor} $2" | tee -a $logfile
     fi
     
     #Kill running processes
@@ -519,11 +520,14 @@ cleanUp() {
   #  if [ -d /dev/nbd1 ]; then
         sudo qemu-nbd -d /dev/nbd1
      else
-             mount_dir_3=$(readlink -f $mount_dir_0)/root
-             mount_dir_4=$(readlink -f $mount_dir_0)/ephemeral
-             
-             guestunmount "$mount_dir_1"; wait
-             guestunmount "$mount_dir_2"; wait
+            if [ ! -z $(cat /proc/mounts | grep $mount_dir_1) ]; then
+                echo -e "Mount directory $mount_dir_1 detected.. unmounting" | tee -a $logfile 
+                guestunmount "$mount_dir_1"; wait
+            fi
+            if [ ! -z $(cat /proc/mounts | grep $mount_dir_2) ]; then 
+               echo -e "Mount directory $mount_dir_2 detected.. unmounting"  | tee -a $logfile
+               guestunmount "$mount_dir_2"; wait
+            fi
      fi
 
       
@@ -537,7 +541,7 @@ cleanUp() {
 
 
 
-if [ $clean -eq 1 ]; then
+if [ ! -z $clean ]; then
     cleanUp 0
     exit
 fi
@@ -547,6 +551,7 @@ if [ -z $id ]; then
     exit 1
 fi 
 
+logfile="$mount_dir_0/$id.log"
 
 source $admin_rc
 
@@ -559,42 +564,54 @@ echo -e "\n\n"
 echo -e "${Green}--------------------------"
 echo -e "VM Data Backup"
 echo -e "--------------------------\n"
-echo -e "${NoColor}VM: $id \nHosted on: $node\n"
+echo -e "$(date)" | 
+echo -e "${NoColor}VM: $id \nHosted on: $node\n" | tee -a $logfile
+
+echo -e "Logging to: $logfile \n"
 
 user_id=$(get_user_id $id)
 user_email=$(get_user_email $user_id)
 user_name=$(get_user_name $user_id)
 
-echo "User: $user_name"
-echo "Email: $user_email"
-echo "ID: $user_id"
+echo -e "User: $user_name" | tee -a $logfile
+echo -e "Email: $user_email" | tee -a $logfile
+echo -e "ID: $user_id\n" | tee -a $logfile
 
-if [ $suspended -eq 1 ]; then
-    suspend_lock $id
+
+if [ ! -z $suspended ]; then
+    suspend_lock $id | tee -a $logfile
 fi
 
 #If local files do not exist... rsync files from node
 
 if [ -z $url ]; then 
-    getdisks $node $user $port
+    cd $mount_dir_0
+   
+    if [ ! -e root.tar.gz ] && [ ! -e ephemeral.tar.gz ]; then  
+    
+        getdisks $node $user $port | tee -a $logfile
 
-    if [ "$mount_method" == "fuse" ]; then
-        if [ -z "$(groups $(whoami) | grep fuse)" ]; then
-        echo "Add user to fuse group"
-        exit;
+        if [ "$mount_method" == "fuse" ]; then
+            if [ -z "$(groups $(whoami) | grep fuse)" ]; then
+                cleanUp 1 "Add user to fuse group"
+            fi
+            mountdisks_fusei | $tee -a logfile
+        else
+            mountdisks_qemu | $tee -a logfile
         fi
-        mountdisks_fuse
+
+        sleep 5
+        tardisks | $tee -a logfile
     else
-        mountdisks_qemu
+        echo -e "${Orange}Tar files detected in $mount_dir_0\nSkipping Stages 1 and 2\n\n${NoColor}" | tee -a $logfile
     fi
-    sleep 5
-    tardisks
+    
 fi
     source $swift_rc
 if [ -z $url ]; then
-    swift_send
+    swift_send | tee -a $logfile
 fi
 
-swift_tempurl
+swift_tempurl | tee -a $logfile
 sleep 1
 cleanUp 0 
