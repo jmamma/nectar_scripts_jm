@@ -180,20 +180,32 @@ getdisks() {
  
     #If the tunnel variable is set, rsync using the ssh tunnel.
 
+    if [ $(ssh root@$node -C "if [ -d $disk_image_dir/$id ]; then echo 1; fi") -eq 1 ]; then
+        echo "$disk_image_dir/$id instance directory detected"
+        instance_dir="$disk_image_dir/$id"
+    elif [ $(ssh root@$node -C "if [ -d $disk_image_dir/$vm_virshname ]; then echo 1; fi") -eq 1 ]; then
+        echo "Old VM detected, getting disk from /var/lib/nova/instances/$vm_virshname"
+        instance_dir="$disk_image_dir/$vm_virshname"
+    else 
+        cleanUp 5 "Could not find instance directory"
+        return 1
+    fi
+
+
     if [ ! -z $tunnelon ]; then
   
         echome "\n Using tunnel"
     
 
         if [ ! -e $mount_dir_0/disk ]; then 
-                rsync -Pevv "ssh -A -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/ 
+                rsync -Pevv "ssh -A -p $port -i $identity_file" -vz localhost:$instance_dir/disk $mount_dir_0/ 
                # if [ "$?" -eq "0" ]; then
                    # cleanUp 5 'Rsync Failed: sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/'
                # fi;
         fi
        
         if [ ! -e $mount_dir_0/disk.local ]; then
-                rsync -Pevv "ssh -A -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/
+                rsync -Pevv "ssh -A -p $port -i $identity_file" -vz localhost:$instance_dir/disk.local $mount_dir_0/
                # if [ "$?" -eq "0" ]; then
                   #  cleanUp 5 'Rsync Failed: sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/'
                # fi;
@@ -205,14 +217,14 @@ getdisks() {
     #rsync directly to node
     echome "Direct transfer"
         if [ ! -e $mount_dir_0/disk ]; then 
-                rsync -Pvvz -e "ssh -A -i $identity_file" root@$node:$disk_image_dir/$id/disk $mount_dir_0/
+                rsync -Pvvz -e "ssh -A -i $identity_file" root@$node:$instance_dir/$id/disk $mount_dir_0/
                 #if [ "$?" -eq "0" ]; then
                   #  cleanUp 5 'Rsync Failed: sudo rsync -Pvz -e "ssh -i $identity_file" root@$node:$disk_image_dir/$id/disk $mount_dir_0/'
                 #fi;
 
         fi
         if [ ! -e $mount_dir_0/disk.local ]; then
-                rsync -Pvvz -e "ssh -A -i $identity_file" root@$node:$disk_image_dir/$id/disk.local $mount_dir_0/
+                rsync -Pvvz -e "ssh -A -i $identity_file" root@$node:$instance_dir/$id/disk.local $mount_dir_0/
                 #if [ "$?" -eq "0" ]; then
                   #  cleanUp 5 'Rsync Failed: sudo rsync -Pvz -e "ssh -i $identity_file" root@$node:$disk_image_dir/$id/disk $mount_dir_0/'
                 #fi;
@@ -597,6 +609,8 @@ user_email=$(get_user_email $user_id)
 user_name=$(get_user_name $user_id)
 vm_ip=$(get_vm_ip $id)
 vm_name=$(get_vm_name $id)
+vm_virshname=$(get_vm_virshname $id)
+
 
 echome "User: $user_name" 
 echome "Email: $user_email" 
