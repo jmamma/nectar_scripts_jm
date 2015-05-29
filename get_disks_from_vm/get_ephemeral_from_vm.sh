@@ -102,7 +102,7 @@ swift_rc=$rc_dir/nectar_image_quarantine-openrc.sh
 
 #Storage location of data:
 
-mount_dir_0="/media/jmammarella/ADATANH03/compromised_vms/$id"
+mount_dir_0="/media/jmammarella/ADATANH03/vm_backup/$id"
 mount_dir_1="$mount_dir_0/root"
 mount_dir_2="$mount_dir_0/ephemeral"
 
@@ -112,7 +112,7 @@ disk_image_dir="/var/lib/nova/instances"
 
 #Mount method fues or qemu. Qemu is deprecated.
 
-mount_method="fuse"
+mount_method="qemu"
 
 
 #Load Helper Functions and Variables
@@ -177,7 +177,20 @@ getdisks() {
     echome "   Copy files from root@$node:$disk_image_dir/$id/ \n"
    
     prompt_user "Press space to continue..."
- 
+    
+    result1=$(ssh root@$node -C "[ -d $disk_image_dir/$id ]; echo 1")
+    result2=$(ssh root@$node -C "[ -d $disk_image_dir/$vm_virshname ]; echo 1")
+    if [ $(ssh root@$node -C "if [ -d $disk_image_dir/$id ]; then echo 1; fi") -eq 1 ]; then
+        echo "$disk_image_dir/$id instance directory detected"
+        instance_dir="$disk_image_dir/$id"
+    elif [ $(ssh root@$node -C "if [ -d $disk_image_dir/$vm_virshname ]; then echo 1; fi") -eq 1 ]; then
+        echo "Old VM detected, getting disk from /var/lib/nova/instances/$vm_virshname"
+        instance_dir="$disk_image_dir/$vm_virshname"
+    else 
+        cleanUp 5 "Could not find instance directory"
+        return 1
+    fi
+
     #If the tunnel variable is set, rsync using the ssh tunnel.
 
     if [ ! -z $tunnelon ]; then
@@ -186,14 +199,14 @@ getdisks() {
     
 
         if [ ! -e $mount_dir_0/disk ]; then 
-                rsync -Pevv "ssh -A -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/ 
+                rsync -Pevv "ssh -A -p $port -i $identity_file" -vz localhost:$instance_dir/disk $mount_dir_0/ 
                # if [ "$?" -eq "0" ]; then
                    # cleanUp 5 'Rsync Failed: sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk $mount_dir_0/'
                # fi;
         fi
        
         if [ ! -e $mount_dir_0/disk.local ]; then
-                rsync -Pevv "ssh -A -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/
+                rsync -Pevv "ssh -A -p $port -i $identity_file" -vz localhost:$instance_dir/disk.local $mount_dir_0/
                # if [ "$?" -eq "0" ]; then
                   #  cleanUp 5 'Rsync Failed: sudo rsync -Pe "ssh -p $port -i $identity_file" -vz localhost:$disk_image_dir/$id/disk.local $mount_dir_0/'
                # fi;
@@ -205,14 +218,14 @@ getdisks() {
     #rsync directly to node
     echome "Direct transfer"
         if [ ! -e $mount_dir_0/disk ]; then 
-                rsync -Pvvz -e "ssh -A -i $identity_file" root@$node:$disk_image_dir/$id/disk $mount_dir_0/
+                rsync -Pvvz -e "ssh -A -i $identity_file" root@$node:$instance_dir/disk $mount_dir_0/
                 #if [ "$?" -eq "0" ]; then
                   #  cleanUp 5 'Rsync Failed: sudo rsync -Pvz -e "ssh -i $identity_file" root@$node:$disk_image_dir/$id/disk $mount_dir_0/'
                 #fi;
 
         fi
         if [ ! -e $mount_dir_0/disk.local ]; then
-                rsync -Pvvz -e "ssh -A -i $identity_file" root@$node:$disk_image_dir/$id/disk.local $mount_dir_0/
+                rsync -Pvvz -e "ssh -A -i $identity_file" root@$node:$instance_dir/disk.local $mount_dir_0/
                 #if [ "$?" -eq "0" ]; then
                   #  cleanUp 5 'Rsync Failed: sudo rsync -Pvz -e "ssh -i $identity_file" root@$node:$disk_image_dir/$id/disk $mount_dir_0/'
                 #fi;
@@ -295,28 +308,28 @@ mountdisks_qemu() {
 
     #Use qemu-nbd to load the first disk image to a device
     
-    echome "\nDisk 1, root, disk:"
+  #  echome "\nDisk 1, root, disk:"
     
-    if $(sudo qemu-nbd -c /dev/nbd0 disk; wait); then
-        echo "/dev/nbd0 created"
-    else 
-        cleanUp 1 "qemu1 failed"
-        return 1
-    fi
+  #  if $(sudo qemu-nbd -c /dev/nbd0 disk; wait); then
+  #      echo "/dev/nbd0 created"
+  #  else 
+  #      cleanUp 1 "qemu1 failed"
+  #      return 1
+  #  fi
 
 
     #Add process of previous command to our Process Array (For termination Later)
-    addProcess $(ps ax | grep "qemu-nbd -c /dev/nbd0 disk" | head -1 | cut -f1 -d' ')
+   # addProcess $(ps ax | grep "qemu-nbd -c /dev/nbd0 disk" | head -1 | cut -f1 -d' ')
  
-    if $(sudo mount /dev/nbd0p1 $mount_dir_1); then
-        echome "Mount Successful: $mount_dir_1\n"
-    elif $(sudo mount /dev/nbd0 $mount_dir_1); then
-        echome "Mount Successful: $mount_dir_1\n"
+  #  if $(sudo mount /dev/nbd0p1 $mount_dir_1); then
+  #      echome "Mount Successful: $mount_dir_1\n"
+  #  elif $(sudo mount /dev/nbd0 $mount_dir_1); then
+  #      echome "Mount Successful: $mount_dir_1\n"
 
-    else
-        cleanUp 1 "mount1 failed"
-        return 1
-    fi
+  #  else
+  #      cleanUp 1 "mount1 failed"
+  #      return 1
+  #  fi
             
     echo "Disk 2, ephemeral,disk.local"
     if $(sudo qemu-nbd -c /dev/nbd1 disk.local; wait); then
@@ -417,14 +430,14 @@ tardisks() {
     
         echome "\n Files were detected in $mount_dir_1"
 
-        if [ ! -e root.tar.gz ]; then 
+    #    if [ ! -e root.tar.gz ]; then 
 
-        create_tar root.tar.gz $mount_dir_1
+    #    create_tar root.tar.gz $mount_dir_1
 
 
-        else
+     #   else
             echo $mount_dir_0"/root.tar.gz already exists, skipping"
-        fi
+     #   fi
     fi
 
     if [ ${#files2[@]} -gt 0 ]; then
@@ -486,10 +499,10 @@ swift_send() {
     echome "\nUploading mount_dir_0/root.tar.gz to container $id " 
     cd $mount_dir_0
     swift post $id
-    if [ ! $(swift list $id | grep root) ]; then
+   # if [ ! $(swift list $id | grep root) ]; then
 
-    swiftupload $id root.tar.gz 1147483648
-    fi
+   # swiftupload $id root.tar.gz 1147483648
+   # fi
 
 
     echome "\nUploading mount_dir_0/ephemeral.tar.gz to container $id " 
@@ -597,6 +610,7 @@ user_email=$(get_user_email $user_id)
 user_name=$(get_user_name $user_id)
 vm_ip=$(get_vm_ip $id)
 vm_name=$(get_vm_name $id)
+vm_virshname=$(get_vm_virshname $id)
 
 echome "User: $user_name" 
 echome "Email: $user_email" 
